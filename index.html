@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cipher</title>
+<meta name="theme-color" content="#6246ea">
+<meta name="description" content="Private, end-to-end encrypted messaging">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="/config.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef0f7;--panel:#ffffffd9;--solid:#fff;--ink:#12131a;--mute:#6b7085;--line:#e3e5ef;--acc:#6246ea;--acc2:#2f80ed;--accink:#fff;--them:#fff;--chat:#f5f6fb;--bad:#e5484d;--shadow:0 10px 40px -12px #1b1f4a33;
+--grad:linear-gradient(135deg,var(--acc),var(--acc2));
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b0c12;--panel:#14161fd9;--solid:#14161f;--ink:#ecedf3;--mute:#8c90a6;--line:#232636;--acc:#7c64ff;--acc2:#3d8bff;--them:#1e2130;--chat:#0f1018;--shadow:0 10px 40px -12px #000a}}
+:root[data-theme="dark"]{--bg:#0b0c12;--panel:#14161fd9;--solid:#14161f;--ink:#ecedf3;--mute:#8c90a6;--line:#232636;--acc:#7c64ff;--acc2:#3d8bff;--them:#1e2130;--chat:#0f1018;--shadow:0 10px 40px -12px #000a}
+*,*:before,*:after{box-sizing:inherit}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 "Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;border:0;border-radius:12px;padding:11px 16px;background:var(--grad);color:var(--accink);font-weight:700;flex:none;transition:transform .12s,filter .15s,opacity .15s;box-shadow:0 6px 18px -8px var(--acc)}
+button:hover{filter:brightness(1.08)}button:active{transform:scale(.97)}
+button.ghost{background:transparent;color:var(--mute);padding:8px;box-shadow:none;border-radius:10px;display:inline-flex;align-items:center;justify-content:center}
+button.ghost:hover{background:var(--line);color:var(--ink);filter:none}
+button.danger{background:transparent;color:var(--bad);border:1.5px solid color-mix(in srgb,var(--bad) 45%,transparent);box-shadow:none}
+button:disabled{opacity:.5;cursor:default;transform:none}
+svg.i{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+input,select{width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;background:var(--solid);outline:none;transition:border-color .15s,box-shadow .15s}
+input[type=checkbox]{width:18px;height:18px;flex:none;accent-color:var(--acc);padding:0}
+input:focus,select:focus{border-color:var(--acc);box-shadow:0 0 0 4px color-mix(in srgb,var(--acc) 18%,transparent)}
+.hide{display:none!important}
+.center{height:100%;display:flex;align-items:center;justify-content:center;padding:20px}
+#auth{background:radial-gradient(1200px 600px at 10% -10%,color-mix(in srgb,var(--acc) 35%,transparent),transparent 60%),radial-gradient(900px 600px at 110% 110%,color-mix(in srgb,var(--acc2) 30%,transparent),transparent 60%),var(--bg)}
+.card{background:var(--solid);border:1px solid var(--line);border-radius:22px;padding:26px;width:100%;max-width:410px;display:flex;flex-direction:column;gap:13px;max-height:100%;overflow-y:auto;box-shadow:var(--shadow)}
+#auth .card{padding:30px}
+.logo{width:56px;height:56px;border-radius:18px;background:var(--grad);display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 10px 26px -8px var(--acc);margin-bottom:2px}
+.logo svg{width:44px;height:44px}
+.card h1{margin:0;font-size:22px;font-weight:800;letter-spacing:-.02em}
+.card h2{margin:8px 0 0;font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.09em;font-weight:700}
+.card p{margin:0;color:var(--mute);font-size:13px}
+.err{color:var(--bad);font-size:13px;min-height:1em;font-weight:500}
+label{font-size:12px;color:var(--mute);display:flex;flex-direction:column;gap:6px;font-weight:600}
+label.chk{flex-direction:row;align-items:center;gap:10px;font-size:14px;color:var(--ink);cursor:pointer;font-weight:500}
+.row{display:flex;gap:8px;align-items:center}
+#app{height:100%;display:flex;background:var(--bg)}
+#side{width:340px;max-width:100%;border-right:1px solid var(--line);background:var(--solid);display:flex;flex-direction:column}
+#main{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--chat);position:relative}
+#main:before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;background-image:radial-gradient(color-mix(in srgb,var(--acc) 22%,transparent) 1px,transparent 1px);background-size:22px 22px}
+.bar{display:flex;align-items:center;gap:6px;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--panel);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);min-height:64px;position:relative;z-index:1}
+.bar .t{flex:1;min-width:0}
+.bar .t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700}
+.bar .t small{color:var(--mute);font-size:12px}
+#cHead{cursor:pointer;display:flex;align-items:center;gap:10px}
+#cHead .tx{min-width:0;flex:1}
+.tabs{display:flex;gap:4px;padding:4px;margin:10px 12px 0;background:var(--bg);border-radius:12px}
+.tabs button{flex:1;background:transparent;color:var(--mute);border-radius:9px;padding:8px;box-shadow:none;font-weight:600}
+.tabs button.on{background:var(--solid);color:var(--ink);box-shadow:0 2px 8px -2px #0002}
+#auth .tabs{margin:4px 0 2px}
+.tool{display:flex;gap:8px;padding:12px}
+.tool input{padding:10px 12px}
+.tool button{padding:10px 13px}
+.list{flex:1;overflow-y:auto;padding:0 8px 8px}
+.item{display:flex;align-items:center;gap:12px;padding:10px;border-radius:14px;cursor:pointer;transition:background .12s}
+.item:hover{background:var(--bg)}
+.item.on{background:color-mix(in srgb,var(--acc) 12%,transparent)}
+.av{width:44px;height:44px;border-radius:50%;background:var(--grad);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;flex:none;font-size:16px}
+.av svg{width:20px;height:20px}
+.av.sm{width:34px;height:34px;font-size:13px}
+.item .t{flex:1;min-width:0}.item .t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}.item small{color:var(--mute);font-size:12.5px}
+.item .x{opacity:0}.item:hover .x{opacity:1}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--grad);flex:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 20%,transparent)}
+#msgs{flex:1;overflow-y:auto;padding:18px 18px 10px;display:flex;flex-direction:column;gap:4px;position:relative}
+.m{max-width:min(72%,560px);padding:9px 13px 6px;border-radius:20px 20px 20px 6px;background:var(--them);word-wrap:break-word;white-space:pre-wrap;align-self:flex-start;box-shadow:0 1px 2px #0000000f,0 4px 14px -8px #0002;animation:pop .18s ease-out}
+.m.me{background:var(--grad);color:var(--accink);align-self:flex-end;border-radius:20px 20px 6px 20px}
+@keyframes pop{from{opacity:0;transform:translateY(6px) scale(.98)}}
+.m .who{display:block;font-size:11.5px;font-weight:700;margin-bottom:2px}
+.m a{color:inherit;text-decoration:underline;text-underline-offset:2px;word-break:break-all}
+.m:not(.me) a{color:var(--acc)}
+.m img,.m video{display:block;max-width:100%;max-height:340px;border-radius:14px;margin:2px -7px 0;max-width:calc(100% + 14px);cursor:zoom-in}
+.m video{background:#000;cursor:default}
+.media{background:#0000002a;color:inherit;border-radius:14px;padding:22px 26px;font-weight:700;box-shadow:none;margin:2px 0}
+.m:not(.me) .media{background:var(--bg);color:var(--ink)}
+.file{display:flex;align-items:center;gap:10px;text-align:left;background:#0000002a;color:inherit;box-shadow:none;border-radius:14px;padding:10px 14px;margin:2px 0;min-width:200px;max-width:100%}
+.m:not(.me) .file{background:var(--bg);color:var(--ink)}
+.file svg{flex:none;width:28px;height:28px}.file span{display:flex;flex-direction:column;min-width:0}.file b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700}.file small{opacity:.7;font-weight:500;font-size:12px}
+.m{position:relative}
+.mdel{display:none;position:absolute;top:50%;transform:translateY(-50%);width:32px;height:32px;padding:0;border-radius:50%;background:var(--solid);color:var(--bad);border:1px solid var(--line);box-shadow:var(--shadow);align-items:center;justify-content:center}
+.mdel svg{width:16px;height:16px}.m.me .mdel{left:-40px}.m:not(.me) .mdel{right:-40px}
+.m.sel .mdel{display:flex}@media (hover:hover){.m:hover .mdel{display:flex}}
+.mdel.mrep{color:#f59f00}
+.hid{font-style:italic;opacity:.6;font-size:13px}
+.voice{display:flex;align-items:center;gap:10px;min-width:220px;padding:2px 0}
+.vbtn{width:40px;height:40px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;background:#ffffff33;color:inherit;box-shadow:none;flex:none}
+.m:not(.me) .vbtn{background:var(--grad);color:#fff}.vbtn svg{width:18px;height:18px}
+.vbar{flex:1;height:4px;border-radius:4px;background:color-mix(in srgb,currentColor 28%,transparent);overflow:hidden}.vbar i{display:block;height:100%;width:0;background:currentColor}
+.voice small{font-size:12px;opacity:.75;font-variant-numeric:tabular-nums;min-width:32px;text-align:right}
+.tr{font-size:13.5px;margin-top:6px;padding-top:6px;border-top:1px solid color-mix(in srgb,currentColor 22%,transparent);opacity:.9}
+.tr:before{content:"“"}.tr:after{content:"”"}.tr.none:before,.tr.none:after{content:""}
+#rec{flex:1;display:flex;align-items:center;gap:10px;background:var(--solid);border:1.5px solid var(--bad);border-radius:26px;padding:4px 4px 4px 16px;min-width:0;box-shadow:var(--shadow)}
+.rdot{width:10px;height:10px;border-radius:50%;background:var(--bad);flex:none;animation:blink 1s infinite}@keyframes blink{50%{opacity:.25}}
+#recT{font-variant-numeric:tabular-nums;flex:none}
+#recTx{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--mute);font-size:13px}
+.blk{display:flex;flex-direction:column;align-items:center;gap:12px}
+#call{position:fixed;inset:0;z-index:9;background:radial-gradient(900px 600px at 50% 0%,#3a2a8a,#0b0c12 70%);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:calc(48px + env(safe-area-inset-top,0px)) 20px calc(36px + env(safe-area-inset-bottom,0px));overflow:hidden}
+#cRemote{position:absolute;left:0;right:0;top:0;bottom:calc(116px + env(safe-area-inset-bottom,0px));width:100%;height:calc(100% - 116px - env(safe-area-inset-bottom,0px));object-fit:contain;background:#000;display:none}
+#call.rv #cRemote{display:block}
+#call.rv{background:#000}
+#cLocal{position:absolute;right:16px;top:calc(16px + env(safe-area-inset-top,0px));width:min(26vw,150px);aspect-ratio:3/4;height:auto;z-index:2;object-fit:cover;border-radius:16px;transform:scaleX(-1);display:none;box-shadow:0 8px 30px #0008;border:2px solid #fff3;background:#222}
+#call.lv #cLocal{display:block}
+#call.sharing #cLocal{transform:none;object-fit:contain;aspect-ratio:16/10;width:min(34vw,220px);background:#000}
+.sharebar{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(126px + env(safe-area-inset-bottom,0px));z-index:3;background:#e5484d;color:#fff;font-weight:700;font-size:13px;padding:8px 14px;border-radius:99px;display:none;box-shadow:0 6px 20px #0006;white-space:nowrap}
+#call.sharing .sharebar{display:block}
+.csec{font-size:12px;opacity:.7}
+.cinfo{position:relative;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px}
+.cinfo .av{width:96px;height:96px;font-size:36px;box-shadow:0 0 0 10px #ffffff12,0 0 0 22px #ffffff08}
+#call:not(.live) .cinfo .av{animation:pulse 1.6s infinite}@keyframes pulse{50%{box-shadow:0 0 0 16px #ffffff1a,0 0 0 34px #ffffff0a}}
+#call.rv .cinfo .av{display:none}
+#call.rv .cinfo{position:absolute;z-index:2;top:calc(16px + env(safe-area-inset-top,0px));left:16px;align-items:flex-start;gap:2px;background:#000a;padding:8px 14px;border-radius:14px;backdrop-filter:blur(8px)}
+#call.rv .cinfo h2{font-size:16px;margin:0}
+#call.rv .cinfo p{font-size:13px}
+.cinfo h2{margin:6px 0 0;font-size:24px;font-weight:800}.cinfo p{margin:0;opacity:.8;font-variant-numeric:tabular-nums}
+.cbtns{position:relative;display:flex;gap:18px;z-index:2}
+#call.rv .cbtns{position:absolute;bottom:calc(24px + env(safe-area-inset-bottom,0px))}
+.cb{width:64px;height:64px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;background:#ffffff26;color:#fff;box-shadow:none;backdrop-filter:blur(8px)}
+.cb svg{width:26px;height:26px}.cb.off{background:#fff;color:#111}
+.cb.dec{background:#e5484d}.cb.dec svg{transform:rotate(135deg)}.cb.acc{background:#2fb35a}
+.m.callm,.m.callm.me{align-self:center;background:var(--solid);color:var(--ink);border:1px solid var(--line);border-radius:18px;max-width:min(92%,360px);padding:10px 12px 6px}
+.crow{display:flex;align-items:center;gap:12px;min-width:220px}
+.cic{width:40px;height:40px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,#2fb35a 16%,transparent);color:#2fb35a}
+.cic.miss{background:color-mix(in srgb,var(--bad) 15%,transparent);color:var(--bad)}.cic.gray{background:var(--bg);color:var(--mute)}
+.cic svg{width:19px;height:19px}
+.ctx{flex:1;min-width:0;display:flex;flex-direction:column}.ctx b{font-weight:700}.ctx small{color:var(--mute);font-size:12.5px}
+.cback{color:var(--acc)}
+.rep{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}.rep span{flex:1;min-width:150px;font-size:13.5px}.rep small{color:var(--mute)}.rep button{padding:6px 10px;font-size:12.5px}
+.flagnote{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + env(safe-area-inset-bottom,0px));background:#e5484d;color:#fff;padding:10px 16px;border-radius:12px;font-size:13px;font-weight:600;z-index:7;box-shadow:var(--shadow);max-width:90%;text-align:center}
+#admBtn.alert{color:var(--bad);position:relative}#admBtn.alert:after{content:'';position:absolute;top:4px;right:4px;width:8px;height:8px;border-radius:50%;background:var(--bad)}
+#grid{display:none;position:absolute;left:0;right:0;top:calc(78px + env(safe-area-inset-top,0px));bottom:calc(116px + env(safe-area-inset-bottom,0px));padding:8px;gap:8px;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));grid-auto-rows:minmax(140px,1fr);overflow-y:auto}
+#call.grp #grid{display:grid}#call.grp{background:#0b0c12}
+#call.grp .cinfo{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));left:0;right:0;gap:0}#call.grp .cinfo .av{display:none}#call.grp .cinfo h2{font-size:18px;margin:0}
+#call.grp.inc .cinfo{position:relative;top:0}#call.grp.inc .cinfo .av{display:flex}#call.grp.inc #grid{display:none}
+#call.grp #cLocal,#call.grp #cRemote{display:none!important}
+#call.grp:not(.inc) .cbtns{position:absolute;bottom:calc(24px + env(safe-area-inset-bottom,0px))}
+.tile{position:relative;background:#1b1d29;border-radius:16px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.tile video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;opacity:0}
+.tile.v video{opacity:1}.tile.me video{transform:scaleX(-1)}.tile.me.scr video{transform:none}
+.tile .av{width:72px;height:72px;font-size:28px;position:relative}.tile.v .av{display:none}
+.tile .lbl{position:absolute;left:8px;bottom:8px;background:#0009;padding:3px 10px;border-radius:99px;font-size:12.5px;font-weight:600}
+.tile.wait .lbl:after{content:' · connecting…';opacity:.7}
+.m time{display:block;font-size:10.5px;opacity:.6;margin-top:3px;text-align:right}
+.day{align-self:center;font-size:11.5px;font-weight:600;color:var(--mute);background:var(--panel);border:1px solid var(--line);padding:4px 12px;border-radius:99px;margin:10px 0 6px;backdrop-filter:blur(8px)}
+.empty{margin:auto;color:var(--mute);text-align:center;font-size:14px;padding:30px;position:relative}
+.empty .big{display:flex;width:64px;height:64px;margin:0 auto 12px;border-radius:20px;background:var(--grad);color:#fff;align-items:center;justify-content:center;opacity:.9}
+.empty .big svg{width:30px;height:30px}
+#composer{display:flex;gap:8px;padding:10px 14px 14px;align-items:center;position:relative;z-index:1}
+#composer .box{flex:1;display:flex;align-items:center;gap:4px;background:var(--solid);border:1.5px solid var(--line);border-radius:26px;padding:4px 6px 4px 4px;box-shadow:var(--shadow);transition:border-color .15s}
+#composer .box:focus-within{border-color:var(--acc)}
+#composer .box input{border:0;box-shadow:none;background:transparent;padding:10px 6px}
+#send{width:46px;height:46px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;font-size:12px}
+#send svg{width:20px;height:20px;margin-left:-2px}
+.ov{position:fixed;inset:0;background:#05061099;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:8;padding:16px;animation:fade .15s}
+.ov .card{animation:pop .2s ease-out}
+@keyframes fade{from{opacity:0}}
+#view img{max-width:95%;max-height:95%;border-radius:12px}
+.mem{display:flex;align-items:center;gap:10px;padding:6px 0}
+.badge{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:99px;background:color-mix(in srgb,var(--bad) 15%,transparent);color:var(--bad);margin-left:6px}
+.mem .acts{display:flex;gap:6px}.mem .acts button{padding:6px 10px;font-size:12.5px}
+.mem span{flex:1;font-weight:500}
+#back{display:none}
+::-webkit-scrollbar{width:8px}::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
+@media (max-width:700px){#side{width:100%;border:0}#app.chat #side{display:none}#app:not(.chat) #main{display:none}#back{display:inline-flex}.m{max-width:84%}}
+</style>
+</head>
+<body>
+<div id="boot" class="center"><p style="color:var(--mute)">Loading…</p></div>
+
+<div id="auth" class="center hide"><div class="card">
+  <div class="logo" id="logo"></div><h1>Cipher</h1><p>Private, end-to-end encrypted messaging.</p>
+  <div class="tabs"><button id="tLogin" class="on">Log in</button><button id="tSign">Sign up</button></div>
+  <label id="fName" class="hide">Display name<input id="aName" maxlength="30" autocomplete="nickname"></label>
+  <label>Number<input id="aNum" inputmode="numeric" maxlength="12" autocomplete="username"></label>
+  <label>Passphrase<input id="aPass" type="password" autocomplete="current-password"></label>
+  <label id="fPass2" class="hide">Repeat passphrase<input id="aPass2" type="password" autocomplete="new-password"></label>
+  <label class="chk hide" id="fTerms"><input type="checkbox" id="aTerms"><span>I agree to the <a href="#" id="aTermsLink" style="color:var(--acc);font-weight:700">Terms &amp; Privacy</a></span></label>
+  <label class="chk"><input type="checkbox" id="aRem" checked>Keep me logged in on this device</label>
+  <p id="aHint" class="hide">Pick any free 4–12 digit number. Your passphrase (8+ characters) encrypts your key and can't be recovered.</p>
+  <div class="err" id="aErr"></div>
+  <button id="aGo">Log in</button>
+  <button class="ghost" id="aReset">Forgot passphrase?</button>
+</div></div>
+
+<div id="app" class="hide">
+  <aside id="side">
+    <div class="bar"><div class="av" id="myAv"></div><div class="t"><b id="myName"></b><small id="myNum"></small></div>
+      <button class="ghost hide" id="admBtn" title="Admin"></button><button class="ghost" id="setBtn" title="Settings"></button><button class="ghost" id="lockBtn" title="Log out"></button></div>
+    <div class="tabs"><button data-tab="chats" class="on">Chats</button><button data-tab="contacts">Contacts</button></div>
+    <div id="tabChats" style="display:contents">
+      <div class="tool"><input id="newNum" placeholder="Text a number…" inputmode="numeric" maxlength="12"><button id="newGo">Go</button><button id="grpBtn" class="ghost" title="New group"></button></div>
+      <div class="err" id="newErr" style="padding:0 12px"></div>
+      <div class="list" id="list"></div>
+    </div>
+    <div id="tabContacts" class="hide" style="flex:1;display:flex;flex-direction:column;min-height:0">
+      <div class="tool"><input id="cNum" placeholder="Number" inputmode="numeric" maxlength="12" style="width:40%"><input id="cNick" placeholder="Name" maxlength="30"><button id="cAdd">Add</button></div>
+      <div class="err" id="cErr" style="padding:0 12px"></div>
+      <div class="list" id="clist"></div>
+    </div>
+  </aside>
+  <main id="main">
+    <div class="bar"><button class="ghost" id="back"></button><div class="t" id="cHead"><div class="av sm hide" id="cAv"></div><div class="tx"><b id="cName">Pick a chat</b><small id="cSub"></small></div></div><button class="ghost hide" id="callA" title="Voice call"></button><button class="ghost hide" id="callV" title="Video call"></button><button class="ghost hide" id="infoBtn"></button></div>
+    <div id="msgs"></div>
+    <div id="composer" class="hide">
+      <div class="box"><button class="ghost" id="photoBtn" title="Attach photos, videos or files"></button>
+      <input type="file" id="file" multiple class="hide">
+      <input id="txt" placeholder="Message" maxlength="4000" autocomplete="off"><button class="ghost" id="micBtn" title="Record voice message"></button></div>
+      <div id="rec" class="hide"><span class="rdot"></span><b id="recT">0:00</b><span id="recTx">Listening…</span><button class="ghost" id="recX" title="Cancel"></button></div>
+      <button id="send" title="Send"></button>
+    </div>
+  </main>
+</div>
+<div id="modal" class="ov hide"><div class="card"></div></div>
+<div id="call" class="hide">
+  <video id="cRemote" autoplay playsinline></video>
+  <video id="cLocal" autoplay playsinline muted></video>
+  <div id="grid"></div>
+  <div class="cinfo"><div class="av" id="callAv"></div><h2 id="callName"></h2><p id="callSt"></p><span class="csec">🔒 End-to-end encrypted</span></div>
+  <button class="sharebar" id="shareBar">You're sharing your screen · Stop</button>
+  <div class="cbtns" id="cIn"><button class="cb dec" id="cDecline" title="Decline"></button><button class="cb acc" id="cAccept" title="Accept"></button></div>
+  <div class="cbtns hide" id="cAct"><button class="cb" id="cMute" title="Mute"></button><button class="cb" id="cCam" title="Camera"></button><button class="cb" id="cShare" title="Share screen"></button><button class="cb dec" id="cHang" title="Hang up"></button></div>
+</div>
+<div id="view" class="ov hide"><img alt=""></div>
+
+<script>
+/* ---------- Supabase db adapter ---------- */
+const DB=(()=>{
+  if(!window.supabase||!window.CIPHER_CONFIG||/YOUR-/.test(CIPHER_CONFIG.url))return null;
+  const sb=supabase.createClient(CIPHER_CONFIG.url,CIPHER_CONFIG.anonKey);
+  const parentOf=p=>p.slice(0,p.lastIndexOf('/')),idOf=p=>p.slice(p.lastIndexOf('/')+1);
+  const rid=()=>Array.from(crypto.getRandomValues(new Uint8Array(10)),b=>b.toString(16).padStart(2,'0')).join('');
+  const snap=(path,row)=>({id:idOf(path),exists:!!row,data:()=>row?row.data:undefined});
+  const chk=r=>{if(r.error)throw Object.assign(new Error(r.error.message),{code:r.error.code});return r.data};
+  const live=new Set();let n=0;
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)live.forEach(f=>f())});
+  function listen(filter,match,cb){
+    let tm;const deb=()=>{clearTimeout(tm);tm=setTimeout(cb,80)};
+    const ch=sb.channel('c'+(++n))
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'docs',filter},deb)
+      .on('postgres_changes',{event:'UPDATE',schema:'public',table:'docs',filter},deb)
+      .on('postgres_changes',{event:'DELETE',schema:'public',table:'docs'},p=>{if(p.old&&match(p.old))deb()})
+      .subscribe(st=>{if(st==='SUBSCRIBED')deb()});
+    live.add(cb);return()=>{live.delete(cb);clearTimeout(tm);sb.removeChannel(ch)};
+  }
+  function doc(path){return{id:idOf(path),path,
+    async get(){return snap(path,chk(await sb.from('docs').select('data').eq('path',path).maybeSingle()))},
+    async set(data){chk(await sb.from('docs').upsert({path,coll:parentOf(path),data,t:typeof data.t==='number'?data.t:0}))},
+    async update(data){const s=await this.get();if(!s.exists)throw new Error('Not found');await this.set({...s.data(),...data})},
+    async delete(){chk(await sb.from('docs').delete().eq('path',path))},
+    onSnapshot(next,err){const go=()=>this.get().then(next,err||(()=>{}));go();return listen('path=eq.'+path,r=>r.path===path,go)}}}
+  function query(coll,o={}){return{
+    orderBy(f,dir){return query(coll,{...o,dir:dir||'asc'})},
+    limit(k){return query(coll,{...o,k})},
+    async get(){let q=sb.from('docs').select('path,data').eq('coll',coll);if(o.dir)q=q.order('t',{ascending:o.dir==='asc'});if(o.k)q=q.limit(o.k);
+      const docs=chk(await q).map(r=>snap(r.path,r));return{docs,size:docs.length,empty:!docs.length}},
+    onSnapshot(next,err){const go=()=>this.get().then(next,err||(()=>{}));go();return listen('coll=eq.'+coll,r=>r.coll===coll,go)}}}
+  return{sb,doc,collection:c=>({...query(c),path:c,doc:id=>doc(c+'/'+(id||rid())),async add(d){const r=doc(c+'/'+rid());await r.set(d);return r}})};
+})();
+const IC={lock:'<rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',out:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/>',clip:'<path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/>',send:'<path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/>',back:'<path d="m15 18-6-6 6-6"/>',info:'<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',group:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/>',plus:'<path d="M12 5v14M5 12h14"/>',x:'<path d="M18 6 6 18M6 6l12 12"/>',c:'<path d="M16.95 7.05A7 7 0 1 0 16.95 16.95"/>',file:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>',mic:'<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4"/>',play:'<path d="M7 4l13 8-13 8z" fill="currentColor"/>',pause:'<path d="M8 4v16M16 4v16" stroke-width="3"/>',trash:'<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>',phone:'<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/>',video:'<path d="m23 7-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/>',screen:'<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>',micoff:'<path d="M1 1l22 22M9 9v3a3 3 0 0 0 5.1 2.1M15 9.3V4a3 3 0 0 0-5.9-.6M17 16.9A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.1 1.2M12 19v4"/>',camoff:'<path d="M1 1l22 22M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m5.7 0H14a2 2 0 0 1 2 2v3.3l1 1L23 7v10"/>',flag:'<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/>',shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',chat:'<path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.2A8.4 8.4 0 0 1 3.6 11.5 8.5 8.5 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5z"/>'};
+const ic=n=>'<svg class="i" viewBox="0 0 24 24">'+IC[n]+'</svg>';
+const icEl=n=>{const t=document.createElement('template');t.innerHTML=ic(n);return t.content.firstChild};
+const PAL=[['#6246ea','#2f80ed'],['#f2557a','#ff8a5c'],['#12b886','#3bc9db'],['#f59f00','#ff6b6b'],['#7950f2','#e64980'],['#1c7ed6','#22b8cf'],['#e8590c','#fab005'],['#2b8a3e','#94d82d']];
+const avBg=k=>{let h=0;for(const c of String(k))h=(h*31+c.charCodeAt(0))>>>0;const p=PAL[h%PAL.length];return 'background:linear-gradient(135deg,'+p[0]+','+p[1]+')'};
+const avatar=(k,label,group,sm)=>{const a=el('div',{className:'av'+(sm?' sm':''),style:avBg(k)});if(group)a.append(icEl('group'));else a.textContent=(String(label).replace('#','')[0]||'?').toUpperCase();return a};
+const emptyEl=(icon,txt)=>{const e=el('div',{className:'empty'});const b=el('div',{className:'big'});b.innerHTML=ic(icon);e.append(b,txt);return e};
+const welcome=()=>emptyEl('lock','Messages, photos and videos are end-to-end encrypted');
+const avc=k=>PAL[(()=>{let h=0;for(const c of String(k))h=(h*31+c.charCodeAt(0))>>>0;return h%PAL.length})()][0];
+const $=id=>document.getElementById(id);
+const el=(t,p={},...k)=>{const e=document.createElement(t);for(const x in p){if(x==='on')for(const ev in p.on)e.addEventListener(ev,p.on[ev]);else if(x==='style')e.style.cssText=p[x];else e[x]=p[x]}e.append(...k.filter(v=>v!=null));return e};
+const enc=new TextEncoder(),dec=new TextDecoder();
+const b64=buf=>{const b=new Uint8Array(buf);let s='';for(let i=0;i<b.length;i+=0x8000)s+=String.fromCharCode.apply(null,b.subarray(i,i+0x8000));return btoa(s)};
+const unb64=s=>{const a=atob(s),u=new Uint8Array(a.length);for(let i=0;i<a.length;i++)u[i]=a.charCodeAt(i);return u};
+const ECDH={name:'ECDH',namedCurve:'P-256'};
+const NUM=/^\d{4,12}$/;
+let db,uid,me,priv,privJwk,openId=null,unsubMsgs=null,unsubInbox=null,inbox=[];
+const shared={},pubs={},plain={},names={},groups={};
+const P=()=>'data/users/'+uid+'/profile';
+const isG=id=>id.startsWith('g_');
+const isBlocked=n=>!!(me&&me.blocked&&me.blocked.includes(n));
+async function setBlock(n,on){const b=new Set(me.blocked||[]);on?b.add(n):b.delete(n);await saveProfile({blocked:[...b]});renderList();if(openId===n)openChat(n)}
+const clean=v=>String(v).replace(/\s*\/\s*admin\s*$/i,'').trim();
+const tag=(n,v)=>clean(v)+(n==='0001'?'/admin':'');
+const disp=n=>tag(n,(me.contacts&&me.contacts[n])||names[n]||'#'+n);
+
+function show(id){['boot','auth','app'].forEach(x=>$(x).classList.toggle('hide',x!==id))}
+function ls(k,v){try{if(v===undefined)return JSON.parse(localStorage.getItem(k)||'null');localStorage.setItem(k,JSON.stringify(v))}catch(e){return null}}
+function applyTheme(){const t=me&&me.settings&&me.settings.theme;if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;else delete document.documentElement.dataset.theme}
+
+async function passKey(pass,salt){
+  const base=await crypto.subtle.importKey('raw',enc.encode(pass),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:250000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function getPub(num){
+  if(pubs[num])return pubs[num];
+  const s=await db.doc('numbers/'+num).get();
+  if(!s.exists)throw new Error('No one has number '+num);
+  const d=s.data();names[num]=String(d.name||num);return pubs[num]=d.pub;
+}
+async function sharedKey(num){
+  if(shared[num])return shared[num];
+  const theirs=await crypto.subtle.importKey('jwk',await getPub(num),ECDH,false,[]);
+  return shared[num]=await crypto.subtle.deriveKey({name:'ECDH',public:theirs},priv,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function wrapPriv(pass){
+  const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},await passKey(pass,salt),enc.encode(privJwk));
+  return {wk:b64(ct),salt:b64(salt),iv:b64(iv)};
+}
+async function makeKeys(pass){
+  const kp=await crypto.subtle.generateKey(ECDH,true,['deriveKey']);
+  const pub=await crypto.subtle.exportKey('jwk',kp.publicKey);
+  privJwk=JSON.stringify(await crypto.subtle.exportKey('jwk',kp.privateKey));
+  priv=await crypto.subtle.importKey('jwk',JSON.parse(privJwk),ECDH,false,['deriveKey']);
+  return {pub:{kty:pub.kty,crv:pub.crv,x:pub.x,y:pub.y},...await wrapPriv(pass)};
+}
+const cidOf=id=>isG(id)?id:[me.num,id].sort().join('_');
+
+/* ---------- groups ---------- */
+async function wrapFor(num,raw){const iv=crypto.getRandomValues(new Uint8Array(12));const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},await sharedKey(num),raw);return {iv:b64(iv),ct:b64(ct),by:me.num}}
+async function getGroup(id,fresh){
+  if(groups[id]&&!fresh)return groups[id];
+  const s=await db.doc('groups/'+id.slice(2)).get();
+  if(!s.exists)throw new Error('This group was deleted');
+  const d=s.data(),w=d.keys&&d.keys[me.num];
+  if(!w||!(d.members||[]).includes(me.num))throw new Error("You're not in this group");
+  const raw=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(w.iv)},await sharedKey(w.by),unb64(w.ct));
+  const key=await crypto.subtle.importKey('raw',raw,'AES-GCM',false,['encrypt','decrypt']);
+  return groups[id]={name:String(d.name||'Group'),members:d.members,owner:d.owner,keys:d.keys||{},key,raw};
+}
+const keyFor=async id=>isG(id)?(await getGroup(id)).key:sharedKey(id);
+
+/* ---------- auth ---------- */
+const DEF={theme:'auto',enter:true};
+async function saveAcct(){
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},await sharedKey(me.num),enc.encode(JSON.stringify({contacts:me.contacts,settings:me.settings,blocked:me.blocked||[]})));
+  await db.doc('accounts/'+me.num).set({ct:b64(ct),iv:b64(iv)});
+}
+async function loadAcct(){
+  const s=await db.doc('accounts/'+me.num).get();if(!s.exists)return;
+  try{const d=s.data(),pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(d.iv)},await sharedKey(me.num),unb64(d.ct));const o=JSON.parse(dec.decode(pt));me.contacts=o.contacts||{};me.blocked=o.blocked||[];me.settings={...DEF,...o.settings}}catch(e){}
+}
+async function saveProfile(f){
+  Object.assign(me,f);
+  if('name' in f)await db.doc('numbers/'+me.num).update({name:f.name});
+  if('wk' in f)await db.doc('numbers/'+me.num).update({wk:f.wk,salt:f.salt,iv:f.iv});
+  if('contacts' in f||'settings' in f||'blocked' in f)await saveAcct();
+}
+function banMsg(b){if(!b||!b.exists)return '';const u=+(b.data().until||0);if(u&&u<Date.now())return '';return u?'This number is suspended until '+new Date(u).toLocaleString([],{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'This number has been banned'}
+async function enter(num,d,jwk,remember){
+  {const bs=await db.doc('bans/'+num).get();const bm=banMsg(bs);if(bm)throw new Error(bm)}
+  privJwk=jwk;priv=await crypto.subtle.importKey('jwk',JSON.parse(jwk),ECDH,false,['deriveKey']);
+  pubs[num]=d.pub;names[num]=String(d.name||num);
+  me={name:String(d.name||num),num,pub:d.pub,contacts:{},blocked:[],settings:{...DEF}};
+  await loadAcct();
+  if(remember)ls('cipher_session',{num,k:jwk});
+  ls('cipher_last',num);start();
+}
+async function init(){
+  db=DB;
+  if(!db){$('boot').innerHTML='<div class="card"><h1>Setup needed</h1><p>Add your Supabase URL and anon key to config.js.</p></div>';return}
+  uid=ls('cipher_device')||(()=>{const v='d_'+Array.from(crypto.getRandomValues(new Uint8Array(12)),b=>b.toString(16).padStart(2,'0')).join('');ls('cipher_device',v);return v})();
+  const ses=ls('cipher_session');
+  if(ses){try{const s=await db.doc('numbers/'+ses.num).get();if(s.exists&&s.data().pub.x===JSON.parse(ses.k).x)return await enter(ses.num,s.data(),ses.k,true)}catch(e){}ls('cipher_session',null)}
+  $('aNum').value=ls('cipher_last')||'';show('auth');($('aNum').value?$('aPass'):$('aNum')).focus();
+}
+let signup=false;
+function mode(su){signup=su;$('tLogin').classList.toggle('on',!su);$('tSign').classList.toggle('on',su);
+  ['fName','fPass2','aHint','fTerms'].forEach(x=>$(x).classList.toggle('hide',!su));$('aReset').classList.toggle('hide',su);
+  $('aGo').textContent=su?'Create account':'Log in';$('aPass').autocomplete=su?'new-password':'current-password';$('aErr').textContent=''}
+$('aTermsLink').onclick=e=>{e.preventDefault();showTerms()};
+$('tLogin').onclick=()=>mode(false);$('tSign').onclick=()=>mode(true);
+$('auth').onkeydown=e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT')$('aGo').click()};
+$('aGo').onclick=async()=>{
+  const num=$('aNum').value.trim(),p=$('aPass').value,err=$('aErr'),rem=$('aRem').checked;
+  if(!NUM.test(num))return err.textContent='Number must be 4–12 digits';
+  $('aGo').disabled=true;err.textContent='';
+  try{
+    const s=await db.doc('numbers/'+num).get();
+    if(signup){
+      const name=clean($('aName').value);
+      if(!name)throw new Error('Enter a display name');
+      if(p.length<8)throw new Error('Passphrase needs 8+ characters');
+      if(p!==$('aPass2').value)throw new Error("Passphrases don't match");
+      if(!$('aTerms').checked)throw new Error('You need to agree to the Terms & Privacy');
+      if(s.exists||(await db.doc('bans/'+num).get()).exists)throw new Error('That number is taken');
+      const k=await makeKeys(p),d={uid,name,terms:Date.now(),pub:k.pub,wk:k.wk,salt:k.salt,iv:k.iv};
+      await db.doc('numbers/'+num).set(d);
+      await enter(num,d,privJwk,rem);await saveAcct();
+    }else{
+      if(!s.exists)throw new Error('No account with that number');
+      let d=s.data(),w=d,legacy=null;
+      if(!d.wk){const l=await db.doc(P()).get();if(l.exists&&l.data().num===num)w=legacy=l.data();else throw new Error('This account cannot be logged in to')}
+      let pt;try{pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(w.iv)},await passKey(p,unb64(w.salt)),unb64(w.wk))}catch(e){throw new Error('Wrong number or passphrase')}
+      await enter(num,d,dec.decode(pt),rem);
+      if(legacy){await db.doc('numbers/'+num).update({wk:w.wk,salt:w.salt,iv:w.iv});me.contacts=legacy.contacts||{};me.settings={...DEF,...legacy.settings};await saveAcct();applyTheme();renderContacts()}
+    }
+    $('aPass').value=$('aPass2').value='';
+  }catch(e){err.textContent=e.message||e.code||'Failed'}
+  $('aGo').disabled=false;
+};
+$('aReset').onclick=async()=>{
+  const num=$('aNum').value.trim();if(!NUM.test(num))return $('aErr').textContent='Enter your number first';
+  const s=await db.doc('numbers/'+num).get();
+  if(!s.exists)return $('aErr').textContent='No account with that number';
+  if(s.data().uid!==uid)return $('aErr').textContent='Passphrase can only be reset from the device that created this number';
+  const p=prompt('Reset keeps your number, but old messages, contacts and groups become unreadable.\n\nNew passphrase (8+ characters):');
+  if(!p)return;if(p.length<8)return alert('Passphrase needs 8+ characters');
+  try{const k=await makeKeys(p),d={...s.data(),pub:k.pub,wk:k.wk,salt:k.salt,iv:k.iv};await db.doc('numbers/'+num).set(d);await enter(num,d,privJwk,$('aRem').checked);await saveAcct()}
+  catch(e){alert('Reset failed: '+(e.message||e.code))}
+};
+function logout(){
+  if(call)endCall('ended');if(unsubRing){unsubRing();unsubRing=null}
+  $('back').click();priv=privJwk=null;ls('cipher_session',null);admStop();ls('cipher_admin',null);
+  for(const o of [shared,plain,groups,pubs,names])for(const k in o)delete o[k];
+  if(unsubInbox)unsubInbox();if(unsubBan){unsubBan();unsubBan=null}inbox=[];me=null;setBadge(0);delete document.documentElement.dataset.theme;mode(false);show('auth');
+}
+
+const ADMIN='0001';let unsubBan=null;
+function start(){
+  show('app');applyTheme();
+  $('admBtn').classList.toggle('hide',me.num!==ADMIN);
+  if(unsubBan)unsubBan();
+  if(unsubRing)unsubRing();seenRing.clear();unsubRing=db.collection('ring/'+me.num+'/in').orderBy('t','desc').limit(5).onSnapshot(onRing,()=>{});
+  unsubBan=db.doc('bans/'+me.num).onSnapshot(b=>{const bm=banMsg(b);if(bm){logout();$('aErr').textContent=bm}},()=>{});
+  admStart();
+  $('myAv').textContent=me.name[0].toUpperCase();$('myAv').style.cssText=avBg(me.num);$('myName').textContent=tag(me.num,me.name);$('myNum').textContent='#'+me.num;
+  if(unsubInbox)unsubInbox();
+  inboxT=null;
+  unsubInbox=db.collection('inbox/'+me.num+'/from').orderBy('t','desc').limit(100).onSnapshot(s=>{inbox=s.docs.map(d=>({id:d.id,...d.data()}));const prev=inboxT;inboxT={};for(const c of inbox)inboxT[c.id]=c.t;if(prev)for(const c of inbox)if(c.by!==me.num&&c.t>(prev[c.id]||0)&&(document.hidden||openId!==c.id))notify(c);renderList()},e=>console.error(e));
+  renderContacts();
+}
+
+/* ---------- tabs / lists ---------- */
+document.querySelectorAll('#side .tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#side .tabs button').forEach(x=>x.classList.toggle('on',x===b));
+  $('tabChats').classList.toggle('hide',b.dataset.tab!=='chats');$('tabContacts').classList.toggle('hide',b.dataset.tab!=='contacts');
+});
+function when(t){const d=new Date(t),n=new Date();return d.toDateString()===n.toDateString()?d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString()}
+function markSeen(){if(!openId)return;const s=ls('seen_'+me.num)||{};s[openId]=Date.now();ls('seen_'+me.num,s)}
+function titleOf(c){if(isG(c.id))return (groups[c.id]&&groups[c.id].name)||String(c.n||'Group');if(!names[c.id]&&c.n)names[c.id]=String(c.n);return disp(c.id)}
+let inboxT=null;
+function notify(c){
+  if(c.q||isBlocked(c.by)||(!isG(c.id)&&isBlocked(c.id))||!me.settings.notify||!('Notification' in window)||Notification.permission!=='granted')return;
+  const g=isG(c.id),title=g?titleOf(c):disp(c.id),o={body:c.mc?'Missed call':g?disp(c.by)+' sent a message':'New encrypted message',icon:'/icon-192.png',badge:'/icon-192.png',tag:c.id,renotify:true,data:{id:c.id}};
+  const fb=()=>{try{const n=new Notification(title,o);n.onclick=()=>{focus();openChat(c.id)}}catch(e){}};
+  if(navigator.serviceWorker&&navigator.serviceWorker.controller)navigator.serviceWorker.ready.then(r=>r.showNotification(title,o)).catch(fb);else fb();
+}
+if(navigator.serviceWorker)navigator.serviceWorker.addEventListener('message',e=>{if(e.data&&e.data.open&&me&&priv)openChat(e.data.open)});
+function setBadge(n){document.title=(n?'('+n+') ':'')+'Cipher';try{n?navigator.setAppBadge&&navigator.setAppBadge(n):navigator.clearAppBadge&&navigator.clearAppBadge()}catch(e){}}
+function renderList(){
+  const L=$('list');L.textContent='';
+  if(!inbox.length){L.append(emptyEl('chat','No chats yet — text a number above'));setBadge(0);return}
+  const seen=ls('seen_'+me.num)||{};let unread=0;
+  for(const c of inbox){if(!isG(c.id)&&isBlocked(c.id))continue;const un=!c.q&&c.id!==openId&&c.t>(seen[c.id]||0)&&c.by!==me.num;if(un)unread++;
+    const n=titleOf(c),g=isG(c.id);
+    L.append(el('div',{className:'item'+(c.id===openId?' on':''),on:{click:()=>openChat(c.id)}},
+      avatar(c.id,n,g),
+      el('div',{className:'t'},el('b',{},n),el('small',{},(g?'Group':'#'+c.id)+' · '+when(c.t))),
+      un?el('div',{className:'dot'}):null));
+  }
+  setBadge(unread);
+}
+function renderContacts(){
+  const L=$('clist');L.textContent='';
+  const nums=Object.keys(me.contacts).sort((a,b)=>me.contacts[a].localeCompare(me.contacts[b]));
+  if(!nums.length){L.append(emptyEl('group','No contacts yet'));return}
+  for(const n of nums)L.append(el('div',{className:'item',on:{click:()=>openChat(n)}},
+    avatar(n,me.contacts[n]),
+    el('div',{className:'t'},el('b',{},me.contacts[n]),el('small',{},'#'+n)),
+    el('button',{className:'ghost x',title:'Remove',on:{click:e=>{e.stopPropagation();removeContact(n)}}},icEl('x'))));
+}
+async function addContact(num,nick){
+  await getPub(num);
+  const c={...me.contacts,[num]:nick||names[num]};await saveProfile({contacts:c});renderContacts();renderList();
+}
+async function removeContact(num){
+  if(!confirm('Remove '+me.contacts[num]+' from contacts?'))return;
+  const c={...me.contacts};delete c[num];await saveProfile({contacts:c});renderContacts();renderList();
+}
+$('cAdd').onclick=async()=>{
+  const n=$('cNum').value.trim(),nick=$('cNick').value.trim();$('cErr').textContent='';
+  if(!NUM.test(n))return $('cErr').textContent='Enter a 4–12 digit number';
+  try{await addContact(n,nick);$('cNum').value=$('cNick').value=''}catch(e){$('cErr').textContent=e.message||e.code}
+};
+$('newGo').onclick=async()=>{
+  const n=$('newNum').value.trim();$('newErr').textContent='';
+  if(!NUM.test(n))return $('newErr').textContent='Enter a 4–12 digit number';
+  try{await getPub(n);$('newNum').value='';openChat(n)}catch(e){$('newErr').textContent='No one has that number'}
+};
+$('newNum').onkeydown=e=>{if(e.key==='Enter')$('newGo').click()};
+
+/* ---------- modal ---------- */
+function modal(title,...kids){
+  const c=$('modal').firstElementChild;c.textContent='';
+  c.append(el('div',{className:'row'},el('h1',{style:'flex:1'},title),el('button',{className:'ghost',on:{click:closeModal}},icEl('x'))),...kids);
+  $('modal').classList.remove('hide');
+}
+function closeModal(){$('modal').classList.add('hide')}
+$('modal').onclick=e=>{if(e.target.id==='modal')closeModal()};
+const errBox=()=>el('div',{className:'err'});
+const busy=async(btn,err,fn)=>{btn.disabled=true;err.textContent='';try{await fn()}catch(e){err.textContent=e.message||e.code||'Failed'}btn.disabled=false};
+
+/* ---------- new group ---------- */
+$('grpBtn').onclick=()=>{
+  const name=el('input',{placeholder:'Group name',maxLength:40});
+  const checks=Object.keys(me.contacts).map(n=>{const cb=el('input',{type:'checkbox',value:n});return el('label',{className:'chk'},cb,me.contacts[n]+' #'+n)});
+  const extra=el('input',{placeholder:'Other numbers, comma separated',inputMode:'numeric'});
+  const err=errBox(),go=el('button',{},'Create group');
+  go.onclick=()=>busy(go,err,async()=>{
+    const gname=name.value.trim();if(!gname)throw new Error('Enter a group name');
+    const sel=[...$('modal').querySelectorAll('input[type=checkbox]:checked')].map(c=>c.value);
+    const more=extra.value.split(/[\s,]+/).filter(Boolean);
+    for(const n of more)if(!NUM.test(n))throw new Error(n+' is not a valid number');
+    const members=[...new Set([me.num,...sel,...more])];
+    if(members.length<2)throw new Error('Add at least one person');
+    for(const n of members)await getPub(n);
+    const raw=crypto.getRandomValues(new Uint8Array(32)),keys={};
+    for(const n of members)keys[n]=await wrapFor(n,raw);
+    const gid=Array.from(crypto.getRandomValues(new Uint8Array(8)),b=>b.toString(16).padStart(2,'0')).join(''),id='g_'+gid,t=Date.now();
+    await db.doc('groups/'+gid).set({name:gname,members,owner:me.num,keys,t});
+    await Promise.all(members.map(n=>db.doc('inbox/'+n+'/from/'+id).set({t,n:gname,by:me.num})));
+    closeModal();openChat(id);
+  });
+  modal('New group',name,el('h2',{},'Contacts'),...(checks.length?checks:[el('p',{},'No contacts yet — add numbers below')]),extra,err,go);
+  name.focus();
+};
+
+/* ---------- info ---------- */
+$('infoBtn').onclick=$('cHead').onclick=()=>{if(openId)isG(openId)?groupInfo(openId):dmInfo(openId)};
+function dmInfo(num){
+  const nick=el('input',{value:me.contacts[num]||'',placeholder:names[num]||'Name',maxLength:30});
+  const err=errBox(),save=el('button',{},me.contacts[num]?'Save name':'Add to contacts');
+  save.onclick=()=>busy(save,err,async()=>{await addContact(num,nick.value.trim());closeModal();openChat(num)});
+  modal(disp(num),el('p',{},'#'+num+(names[num]?' · calls themselves "'+names[num]+'"':'')),el('p',{},$('cSub').textContent.split('· ')[1]||''),
+    el('label',{},'Contact name',nick),err,save,
+    num===me.num?null:el('button',{className:'danger',on:{click:async()=>{const on=!isBlocked(num);if(on&&!confirm('Block #'+num+'? You won\'t see their messages or get notifications from them.'))return;closeModal();await setBlock(num,on)}}},isBlocked(num)?'Unblock':'Block'),
+    me.contacts[num]?el('button',{className:'danger',on:{click:async()=>{closeModal();await removeContact(num);openChat(num)}}},'Remove contact'):null);
+}
+async function groupInfo(id){
+  let g;try{g=await getGroup(id,true)}catch(e){return alert(e.message)}
+  const list=g.members.map(n=>el('div',{className:'mem'},avatar(n,disp(n),false,true),
+    el('span',{},(n===me.num?'You':disp(n))+' #'+n+(n===g.owner?' · admin':''))));
+  const add=el('input',{placeholder:'Add a number',inputMode:'numeric',maxLength:12}),err=errBox(),addBtn=el('button',{},'Add');
+  addBtn.onclick=()=>busy(addBtn,err,async()=>{
+    const n=add.value.trim();if(!NUM.test(n))throw new Error('Enter a 4–12 digit number');
+    const cur=await getGroup(id,true);if(cur.members.includes(n))throw new Error('Already in the group');
+    await getPub(n);const keys={...cur.keys,[n]:await wrapFor(n,cur.raw)},t=Date.now();
+    await db.doc('groups/'+id.slice(2)).update({members:[...cur.members,n],keys});
+    await db.doc('inbox/'+n+'/from/'+id).set({t,n:cur.name,by:me.num});
+    groupInfo(id);
+  });
+  const leave=el('button',{className:'danger'},'Leave group');
+  leave.onclick=()=>busy(leave,err,async()=>{
+    if(!confirm('Leave '+g.name+'?'))return;
+    const cur=await getGroup(id,true),keys={...cur.keys};delete keys[me.num];
+    const members=cur.members.filter(n=>n!==me.num);
+    if(members.length)await db.doc('groups/'+id.slice(2)).update({members,keys,owner:cur.owner===me.num?members[0]:cur.owner});
+    else await db.doc('groups/'+id.slice(2)).delete();
+    await db.doc('inbox/'+me.num+'/from/'+id).delete();
+    delete groups[id];closeModal();$('back').click();
+  });
+  modal('👥 '+g.name,el('h2',{},g.members.length+' members'),...list,el('div',{className:'row'},add,addBtn),err,leave);
+}
+
+/* ---------- word check ---------- */
+const DEFAULT_WORDS=['fuck','fucking','motherfucker','cunt','nigger','nigga','faggot','fag','retard','tranny','paki','chink','kike','spic','wetback','coon','slut','whore','rape','rapist','nudes','kys','kill yourself','go die','neck yourself'];
+let WORDS=null;
+const normW=x=>String(x).toLowerCase().replace(/[0@4]/g,m=>({'0':'o','@':'a','4':'a'}[m])).replace(/[1!|]/g,'i').replace(/3/g,'e').replace(/[5$]/g,'s').replace(/7/g,'t').replace(/[^a-z\s]/g,'').replace(/(.)\1+/g,'$1').replace(/\s+/g,' ').trim();
+async function getWords(){if(WORDS)return WORDS;let w=DEFAULT_WORDS;try{const d=await db.doc('config/words').get();if(d.exists&&Array.isArray(d.data().w))w=d.data().w}catch(e){}return WORDS=w.map(x=>normW(x)).filter(Boolean)}
+async function checkWords(text,id){
+  try{
+    const ws=await getWords(),n=normW(text),toks=n.split(' '),flat=' '+n+' ';
+    const hit=ws.find(w=>w.includes(' ')?flat.includes(' '+w+' '):toks.some(t=>t===w||(w.length>=5&&t.includes(w))));
+    if(!hit)return;
+    const key='flag_'+cidOf(id)+'_'+hit,last=ls(key)||0;
+    toast('⚠️ Your message contained a flagged word and was reported to the admin.');
+    if(Date.now()-last<600000)return;ls(key,Date.now());
+    await DB.sb.from('reports').insert({num:me.num,word:hit.slice(0,40),chat:cidOf(id).slice(0,80)});
+  }catch(e){}
+}
+function msgText(m){return m.k==='t'?m.v:m.k==='i'?'[photo]':m.k==='c'?'[call]':m.vo?'[voice message] '+(m.tr||''):m.k==='f'?'[file: '+(m.nm||'file')+']':'[message]'}
+function reportMsg(did,m,id){
+  if(ls('rep_'+did))return toast('You already reported this message.');
+  const reasons=['Bullying or harassment','Hate speech or slurs','Sexual content','Threats or violence','Spam','Something else'];let pick=reasons[0];
+  const opts=reasons.map(r=>el('label',{className:'chk'},el('input',{type:'radio',name:'rr',checked:r===pick,on:{change:()=>pick=r}}),r));
+  const err=errBox(),go=el('button',{className:'danger'},'Report message');
+  go.onclick=()=>busy(go,err,async()=>{
+    const r=await DB.sb.from('reports').insert({num:String(m.f),word:pick.slice(0,40),reason:pick.slice(0,40),chat:cidOf(id).slice(0,80),msg:msgText(m).slice(0,1000),reporter:me.num});
+    if(r.error)throw new Error(r.error.message);ls('rep_'+did,1);closeModal();toast('Reported. The admin will review it. You can also block them from their chat info.')});
+  modal('Report message',el('p',{},"A copy of this message and your number will be sent to the admin. The sender won't be told who reported them."),
+    el('div',{style:'padding:10px 12px;border-left:3px solid var(--bad);background:var(--bg);border-radius:8px;white-space:pre-wrap;font-size:14px;word-break:break-word'},msgText(m).slice(0,300)),
+    el('h2',{},'Reason'),...opts,err,go);
+}
+function toast(t){const d=el('div',{className:'flagnote'},t);document.body.append(d);setTimeout(()=>d.remove(),4500)}
+
+/* ---------- admin ---------- */
+let adminPw=null,admPoll=null;
+const admRpc=async(fn,args={})=>{if(!adminPw)throw new Error('Unlock admin tools first');const r=await DB.sb.rpc(fn,{secret:adminPw,...args});if(r.error){if(/admin password/i.test(r.error.message)){adminPw=null;ls('cipher_admin',null)}throw new Error(r.error.message)}return r.data};
+async function adminBan(num,ban,days=0){if(!adminPw){const p=prompt('Admin password:');if(!p)throw new Error('');adminPw=p}await admRpc('admin_ban',{num,ban,days})}
+function admStart(){admStop();if(!me||me.num!==ADMIN)return;adminPw=adminPw||ls('cipher_admin');if(!adminPw)return;admCheck();admPoll=setInterval(admCheck,30000)}
+function admStop(){clearInterval(admPoll);admPoll=null;adminPw=null}
+async function admCheck(){
+  try{
+    const rows=await admRpc('admin_reports');const lastSeen=+(ls('adm_last')||0),fresh=rows.filter(r=>+r.id>lastSeen);
+    $('admBtn').classList.toggle('alert',rows.some(r=>+r.id>(+(ls('adm_read')||0))));
+    if(fresh.length){ls('adm_last',Math.max(...rows.map(r=>+r.id)));
+      for(const r of fresh.slice(0,3)){try{await getPub(r.num)}catch(e){}
+        const title='🚩 Message reported: '+disp(r.num)+' #'+r.num,o={body:r.word+(r.msg?' — "'+String(r.msg).slice(0,80)+'"':'')+' · open Admin to review',icon:'/icon-192.png',tag:'flag'+r.id,requireInteraction:true};
+        if('Notification' in window&&Notification.permission==='granted'){try{navigator.serviceWorker&&navigator.serviceWorker.controller?navigator.serviceWorker.ready.then(x=>x.showNotification(title,o)):new Notification(title,o)}catch(e){}}
+        if(!document.hidden)toast(title+' ('+r.word+')');
+      }}
+  }catch(e){}
+}
+async function wipe(num){
+  const ib=await db.collection('inbox/'+num+'/from').get();
+  await Promise.all(ib.docs.map(d=>db.doc('inbox/'+num+'/from/'+d.id).delete()));
+  await db.doc('accounts/'+num).delete();await db.doc('numbers/'+num).delete();
+}
+$('admBtn').onclick=async()=>{
+  if(!me||me.num!==ADMIN)return;
+  const err=errBox(),repBox=el('div'),box=el('div'),q=el('input',{placeholder:'Search name or number'});
+  let users=[],bans=new Map();
+  const act=async(btn,fn)=>{btn.disabled=true;err.textContent='';try{await fn();await load()}catch(e){err.textContent=e.message||e.code||''}btn.disabled=false};
+  const susp=(num,days)=>adminBan(num,true,days);
+  const status=n=>{const u=bans.get(n);if(u===undefined)return null;if(u&&u<Date.now())return null;return u?'SUSPENDED until '+new Date(u).toLocaleDateString([],{day:'numeric',month:'short'})+' '+new Date(u).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'BANNED'};
+  const load=async()=>{
+    box.textContent='Loading…';
+    try{
+      const [u,b]=await Promise.all([db.collection('numbers').limit(1000).get(),db.collection('bans').limit(1000).get()]);
+      users=u.docs.map(d=>({num:d.id,name:String(d.data().name||'')}));bans=new Map(b.docs.map(d=>[d.id,+(d.data().until||0)]));
+      for(const n of bans.keys())if(!users.some(x=>x.num===n))users.push({num:n,name:'(deleted)'});
+      users.sort((a,b)=>a.num.localeCompare(b.num));draw();
+    }catch(e){box.textContent='';err.textContent=e.message||e.code}
+    await loadReports();
+  };
+  const loadReports=async()=>{
+    repBox.textContent='';
+    if(!adminPw){
+      const pw=el('input',{type:'password',placeholder:'Admin password'}),go=el('button',{},'Unlock');
+      go.onclick=()=>act(go,async()=>{adminPw=pw.value;await admRpc('admin_reports');ls('cipher_admin',adminPw);admStart()});
+      repBox.append(el('p',{},'Unlock to see reported messages, suspend people and get report notifications on this device.'),el('div',{className:'row'},pw,go));return;
+    }
+    let rows=[];try{rows=await admRpc('admin_reports')}catch(e){err.textContent=e.message;return loadReports()}
+    if(rows.length)ls('adm_read',Math.max(...rows.map(r=>+r.id)));$('admBtn').classList.remove('alert');
+    if(!rows.length){repBox.append(el('p',{},'No reports 🎉'))}
+    for(const r of rows.slice(0,50)){
+      const nm=(users.find(x=>x.num===r.num)||{}).name||'',st=status(r.num);
+      const rn=r.reporter?((users.find(x=>x.num===r.reporter)||{}).name||'')+' #'+r.reporter:'';
+      const row=el('div',{className:'rep'},el('span',{},el('b',{},(nm?tag(r.num,nm):'?')+' #'+r.num),' · ',el('span',{className:'badge',style:'margin:0'},r.word),r.msg?el('div',{style:'margin:6px 0;padding:6px 10px;border-left:3px solid var(--bad);background:var(--bg);border-radius:6px;white-space:pre-wrap;word-break:break-word'},String(r.msg)):null,el('small',{},(rn?'Reported by '+rn+' · ':'')+new Date(+r.t).toLocaleString()+(st?' · '+st:''))));
+      if(r.num!==ADMIN)for(const dd of [1,2,3]){const b=el('button',{className:'danger'},dd+'d');b.title='Suspend for '+dd+' day'+(dd>1?'s':'');b.onclick=()=>act(b,async()=>{if(!confirm('Suspend #'+r.num+' for '+dd+' day'+(dd>1?'s':'')+'?'))throw new Error('');await susp(r.num,dd)});row.append(b)}
+      const x=el('button',{className:'ghost'},'Dismiss');x.onclick=()=>act(x,()=>admRpc('admin_clear_reports',{num_in:r.num}));row.append(x);
+      repBox.append(row);
+    }
+  };
+  const draw=()=>{
+    box.textContent='';const t=q.value.trim().toLowerCase();
+    const list=users.filter(u=>!t||u.num.includes(t)||u.name.toLowerCase().includes(t));
+    if(!list.length)box.append(el('p',{},'No accounts'));
+    for(const u of list){
+      const st=status(u.num),self=u.num===ADMIN,acts=el('div',{className:'acts'});
+      if(!self){
+        const bb=el('button',{className:'danger'},st?'Unban':'Ban');
+        bb.onclick=()=>act(bb,async()=>{if(!st&&!confirm('Permanently ban #'+u.num+'?'))throw new Error('');await adminBan(u.num,!st)});
+        const db2=el('button',{className:'danger'},'Delete');
+        db2.onclick=()=>act(db2,async()=>{if(!confirm('Delete #'+u.num+' ('+u.name+')? Their account is removed and the number is freed.'))throw new Error('');await wipe(u.num)});
+        acts.append(bb);if(u.name!=='(deleted)')acts.append(db2);
+      }
+      box.append(el('div',{className:'mem'},avatar(u.num,u.name||u.num,false,true),el('span',{},(u.name==='(deleted)'?u.name:tag(u.num,u.name))+' #'+u.num,st?el('span',{className:'badge'},st):null,self?el('span',{className:'badge',style:'background:color-mix(in srgb,var(--acc) 15%,transparent);color:var(--acc)'},'ADMIN'):null),acts));
+    }
+  };
+  q.oninput=draw;
+  modal('Admin',el('h2',{},'Reports'),repBox,err,el('h2',{},'Accounts'),el('p',{},'Ban blocks a number permanently. Suspensions (1–3 days) lift automatically. Delete removes the account and frees the number.'),q,box);
+  load();
+};
+
+
+/* ---------- terms ---------- */
+const TERMS=[
+['Summary','Cipher is a private messaging app. Your messages, photos and videos are end-to-end encrypted, which means only the people in the chat can read them. By creating an account you agree to these terms.'],
+['What is encrypted','Message text, photos, videos, GIFs, files, voice messages (and their transcripts) and links are encrypted on your device before they are sent, using AES-256-GCM with keys agreed through ECDH (P-256). Group chats use a shared group key that is itself encrypted separately for each member. Your contacts list and settings are also encrypted. Nobody running Cipher, including the admin, can read your messages. The only exception is when someone in your chat chooses to report one of your messages (see Reporting).'],
+['What is not encrypted','To make the app work, some information is stored in readable form: your number, your display name, your public key, which numbers you have chats with, group names and member lists, and the times messages were sent. Do not put private information in your display name or group names.'],
+['Your passphrase','Your passphrase locks your private key. It is never sent anywhere and cannot be recovered. If you forget it, you can reset your keys from the device that created your number, but your old messages will become unreadable. Use a long passphrase that you do not use anywhere else. If someone learns your passphrase, they can log in as you.'],
+['Your device','Messages are decrypted on your device. Encryption cannot protect you if your device is unlocked, shared, or someone takes screenshots. "Keep me logged in" stores your key on that device, so do not use it on shared computers.'],
+['Voice messages','When you record a voice message, the text shown under it is made by your browser\'s built-in speech recognition while you speak. In Chrome this means your speech is sent to Google to be turned into text, before Cipher encrypts and sends it. The audio and text are then end-to-end encrypted like any other message.'],
+['Calls','Voice, video and group calls go directly between devices where possible and are encrypted with DTLS-SRTP. The connection details are encrypted with your chat key before being exchanged. Screen sharing only starts after you press the share button and pick what to share in your browser, and is sent over the same encrypted connection; a red bar shows while you are sharing. If a direct connection is not possible, call data may pass through a relay server, still encrypted.'],
+['Blocking and deleting','You can block any number from its chat info. Blocking is private: they are not told, but you will not see their messages or get notifications from them. You can delete your own messages for everyone; the admin can also delete messages that break the rules.'],
+['Rules','You must not use Cipher to: harass, bully or threaten anyone; share sexual content involving anyone under 18; share illegal content; impersonate others; spam; or try to break, overload or get around the security of the app. You are responsible for what you send.'],
+['Reporting','If someone sends you something that breaks the rules, tap the message and press the 🚩 flag to report it. A copy of that one message (text only, or a description like [photo]), the reason you chose, and your number are sent to the admin so they can review it. The sender is not told who reported them. Messages are never checked or reported automatically. The admin may suspend accounts for 1 to 3 days or ban them. Do not make false reports.'],
+['Admin and moderation','Account #0001 is the admin (shown as /admin). The admin can ban numbers and delete accounts that break these rules, without warning. The admin cannot read your encrypted messages, so if someone sends you something harmful, report it by showing it to the admin or a trusted adult.'],
+['Staying safe','Only chat with people you know. Never share your passphrase. If anything makes you feel unsafe, stop replying, tell a trusted adult, and in an emergency contact the police.'],
+['No guarantees','Cipher is an independent project provided "as is". It may have bugs, go offline, or lose data, and there is no guarantee it will keep running. Do not rely on it for anything important or as your only copy of anything.'],
+['Deleting your account','You can delete your account at any time in Settings. This removes your profile and frees your number. Messages you already sent may remain in other people\'s chats in encrypted form.'],
+['Changes','These terms may be updated. Continuing to use Cipher after a change means you accept the new terms.']];
+function showTerms(){
+  modal('Terms & Privacy',el('p',{},'Last updated: October 2026'),...TERMS.flatMap(([h,t])=>[el('h2',{},h),el('p',{style:'color:var(--ink);font-size:14px;line-height:1.55'},t)]),
+    el('button',{on:{click:closeModal}},'Got it'));
+}
+
+/* ---------- settings ---------- */
+$('setBtn').onclick=()=>{
+  const name=el('input',{value:me.name,maxLength:30}),nErr=errBox(),nBtn=el('button',{},'Save name');
+  nBtn.onclick=()=>busy(nBtn,nErr,async()=>{
+    const v=clean(name.value);if(!v)throw new Error('Enter a name');
+    await saveProfile({name:v});names[me.num]=v;
+    $('myName').textContent=tag(me.num,v);$('myAv').textContent=v[0].toUpperCase();nErr.textContent='Saved ✓';
+  });
+  const theme=el('select',{},...['auto','light','dark'].map(t=>el('option',{value:t,selected:me.settings.theme===t},t==='auto'?'Match device':t[0].toUpperCase()+t.slice(1))));
+  theme.onchange=()=>{saveProfile({settings:{...me.settings,theme:theme.value}});applyTheme()};
+  const ent=el('input',{type:'checkbox',checked:me.settings.enter!==false});
+  ent.onchange=()=>saveProfile({settings:{...me.settings,enter:ent.checked}});
+  const nt=el('input',{type:'checkbox',checked:!!me.settings.notify});
+  nt.onchange=async()=>{
+    if(nt.checked){
+      if(!('Notification' in window)){alert("This browser doesn't support notifications");nt.checked=false;return}
+      if(await Notification.requestPermission()!=='granted'){alert('Notifications are blocked. Allow them in your browser\'s site settings (the icon left of the address bar), then try again.');nt.checked=false;return}
+    }
+    saveProfile({settings:{...me.settings,notify:nt.checked}});
+  };
+  const p1=el('input',{type:'password',placeholder:'New passphrase (8+)',autocomplete:'new-password'}),p2=el('input',{type:'password',placeholder:'Repeat',autocomplete:'new-password'});
+  const pErr=errBox(),pBtn=el('button',{},'Change passphrase');
+  pBtn.onclick=()=>busy(pBtn,pErr,async()=>{
+    if(p1.value.length<8)throw new Error('Passphrase needs 8+ characters');if(p1.value!==p2.value)throw new Error("Passphrases don't match");
+    await saveProfile(await wrapPriv(p1.value));p1.value=p2.value='';pErr.textContent='Changed ✓';
+  });
+  const copy=el('button',{className:'ghost',on:{click:async()=>{try{await navigator.clipboard.writeText(me.num);copy.textContent='Copied ✓'}catch(e){copy.textContent='#'+me.num}}}},'Copy my number #'+me.num);
+  const del=el('button',{className:'danger',on:{click:async()=>{
+    if(prompt('This deletes your account and frees your number. Type DELETE to confirm.')!=='DELETE')return;
+    try{await db.doc('accounts/'+me.num).delete();await db.doc('numbers/'+me.num).delete();closeModal();logout()}catch(e){alert('Failed: '+(e.message||e.code))}
+  }}},'Delete account');
+  modal('⚙️ Settings',el('h2',{},'Profile'),el('label',{},'Display name',name),nErr,nBtn,copy,
+    el('h2',{},'Appearance'),el('label',{},'Theme',theme),
+    el('h2',{},'Chat'),el('label',{className:'chk'},ent,'Enter key sends message'),el('label',{className:'chk'},nt,'Notifications for new messages'),
+    el('h2',{},'Blocked numbers'),...((me.blocked||[]).length?me.blocked.map(n=>el('div',{className:'mem'},avatar(n,disp(n),false,true),el('span',{},disp(n)+' #'+n),el('button',{className:'danger',style:'padding:6px 10px;font-size:12.5px',on:{click:async e=>{await setBlock(n,false);e.target.closest('.mem').remove()}}},'Unblock'))):[el('p',{},'Nobody blocked')]),
+    el('h2',{},'Security'),p1,p2,pErr,pBtn,el('button',{className:'ghost',style:'color:var(--acc)',on:{click:showTerms}},'Terms & Privacy'),del);
+};
+
+/* ---------- chat ---------- */
+async function openChat(id){
+  if(rec)stopRec(false);
+  openId=id;$('callA').classList.add('hide');$('callV').classList.add('hide');$('app').classList.add('chat');$('composer').classList.remove('hide');$('infoBtn').classList.remove('hide');
+  const g=isG(id);
+  $('cName').textContent=g?'Group':disp(id);const ca=$('cAv');ca.replaceWith(Object.assign(avatar(id,disp(id),g,true),{id:'cAv'}));$('cSub').textContent=g?'':'#'+id;
+  const M=$('msgs');nodesFor=null;M.innerHTML='<div class="empty">Loading…</div>';renderList();
+  if(unsubMsgs){unsubMsgs();unsubMsgs=null}
+  try{
+    if(g){const gr=await getGroup(id,true);if(openId!==id)return;$('cName').textContent=gr.name;$('cSub').textContent=gr.members.length+' members · encrypted · tap for info';for(const n of gr.members)getPub(n).catch(()=>{});$('callA').classList.remove('hide');$('callV').classList.remove('hide')}
+    else{await sharedKey(id);if(openId!==id)return;$('cName').textContent=disp(id);safety(id);
+      if(id!==me.num&&!isBlocked(id)){$('callA').classList.remove('hide');$('callV').classList.remove('hide')}
+      if(isBlocked(id)){M.textContent='';$('composer').classList.add('hide');const u=el('button',{on:{click:()=>setBlock(id,false)}},'Unblock');M.append(el('div',{className:'empty blk'},'You blocked this number',u));return}}
+  }catch(e){M.textContent='';M.append(el('div',{className:'empty'},e.message||'Unavailable'));$('composer').classList.add('hide');return}
+  unsubMsgs=db.collection('chats/'+cidOf(id)+'/msgs').orderBy('t','desc').limit(150).onSnapshot(s=>{if(openId===id)renderMsgs(s.docs.slice().reverse(),id)},e=>console.error(e));
+  markSeen();renderList();$('txt').focus();
+}
+async function safety(num){
+  const a=[pubs[me.num].x+pubs[me.num].y,pubs[num].x+pubs[num].y].sort().join('');
+  const h=[...new Uint8Array(await crypto.subtle.digest('SHA-256',enc.encode(a)))].slice(0,6).map(b=>b.toString(16).padStart(2,'0')).join('');
+  if(openId===num)$('cSub').textContent='#'+num+' · safety code '+h.match(/..../g).join('-');
+}
+async function decryptMsg(doc,id){
+  if(plain[doc.id])return plain[doc.id];
+  const d=doc.data();
+  try{
+    const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(d.iv)},await keyFor(id),unb64(d.ct));
+    return plain[doc.id]={...JSON.parse(dec.decode(pt)),f:String(d.f),t:d.t};
+  }catch(e){return {k:'x',f:String(d.f),t:d.t}}
+}
+let nodes={},nodesFor=null,lastDay='';
+const dayLbl=t=>{const d=new Date(t),n=new Date(),y=new Date(n-864e5);return d.toDateString()===n.toDateString()?'Today':d.toDateString()===y.toDateString()?'Yesterday':d.toLocaleDateString([],{weekday:'short',day:'numeric',month:'short'})};
+const URLRE=/((?:https?:\/\/|www\.)[^\s<]+[^\s<.,;:!?)\]'"])/gi;
+function linkify(b,txt){let i=0;for(const mt of txt.matchAll(URLRE)){b.append(txt.slice(i,mt.index));const h=/^www\./i.test(mt[0])?'https://'+mt[0]:mt[0];b.append(el('a',{href:h,target:'_blank',rel:'noopener noreferrer'},mt[0]));i=mt.index+mt[0].length}b.append(txt.slice(i))}
+const mb=n=>(n/1048576).toFixed(n<1048576?2:1)+' MB';
+async function loadBlob(m,id){
+  if(m.url)return m.url;
+  const cid=cidOf(id),parts=await Promise.all(Array.from({length:m.n},(_,i)=>db.doc('chats/'+cid+'/parts/'+m.b+'_'+i).get()));
+  if(parts.some(p=>!p.exists))throw new Error('missing');
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(m.iv)},await keyFor(id),unb64(parts.map(p=>p.data().d).join('')));
+  return m.url=URL.createObjectURL(new Blob([pt],{type:m.m}));
+}
+function callNode(m,id){
+  const by=String(m.by||m.f),mine=by===me.num,vid=m.kind==='video',ok=m.st==='answered',k=vid?'video':'voice';
+  if(m.st==='group'){const icn=el('div',{className:'cic'});icn.innerHTML=ic(vid?'video':'phone');
+    const j=el('button',{className:'ghost cback',style:'font-weight:700',on:{click:e=>{e.stopPropagation();if(openId===id&&!call)joinGroupCall(id,vid?'video':'audio')}}},'Join');
+    return el('div',{className:'crow'},icn,el('div',{className:'ctx'},el('b',{},'Group '+k+' call'),el('small',{},'Started by '+(mine?'you':disp(by)))),j)}
+  const label=ok?(vid?'Video call':'Voice call'):mine?({declined:'Call declined','no answer':'No answer',busy:'Busy — call not answered',failed:"Call didn't connect"}[m.st]||'Cancelled '+k+' call'):(m.st==='declined'?'Declined '+k+' call':m.st==='failed'?"Call didn't connect":'Missed '+k+' call');
+  const icn=el('div',{className:'cic'+(ok?'':mine?' gray':' miss')});icn.innerHTML=ic(vid?'video':'phone');
+  const row=el('div',{className:'crow'},icn,el('div',{className:'ctx'},el('b',{},label),el('small',{},'Started by '+(mine?'you':disp(by))+(ok&&m.d?' · '+fmt(m.d):''))));
+  if(!isG(id)&&id!==me.num&&!isBlocked(id)){const back=el('button',{className:'ghost cback',title:vid?'Video call back':'Call back',on:{click:e=>{e.stopPropagation();if(openId===id)startCall(vid?'video':'audio')}}});back.innerHTML=ic(vid?'video':'phone');row.append(back)}
+  return row;
+}
+async function delMsg(did,m,id){
+  if(!confirm('Delete this message for everyone?'))return;
+  const cid=cidOf(id);
+  try{
+    await db.doc('chats/'+cid+'/msgs/'+did).delete();
+    if(m.k==='f'&&m.b)await Promise.all(Array.from({length:m.n||0},(_,i)=>db.doc('chats/'+cid+'/parts/'+m.b+'_'+i).delete()));
+    delete plain[did];
+  }catch(e){alert('Delete failed: '+(e.message||e.code))}
+}
+const fmt=x=>Math.floor(x/60)+':'+String(Math.floor(x%60)).padStart(2,'0');
+function voiceNode(m,id){
+  const out=el('div'),wrap=el('div',{className:'voice'}),btn=el('button',{className:'vbtn',title:'Play'}),bar=el('div',{className:'vbar'},el('i')),lab=el('small',{},fmt(m.d||0));
+  btn.innerHTML=ic('play');let au=null;
+  btn.onclick=async()=>{
+    if(!au){btn.disabled=true;
+      try{au=new Audio(await loadBlob(m,id))}catch(e){btn.disabled=false;wrap.replaceWith(el('span',{},"⚠️ Couldn't load"));return}
+      btn.disabled=false;
+      au.ontimeupdate=()=>{const d=isFinite(au.duration)&&au.duration?au.duration:(m.d||1);bar.firstChild.style.width=Math.min(100,au.currentTime/d*100)+'%';lab.textContent=fmt(au.currentTime)};
+      au.onended=()=>{btn.innerHTML=ic('play');bar.firstChild.style.width='0';lab.textContent=fmt(m.d||0)};
+    }
+    if(au.paused){au.play().catch(()=>{});btn.innerHTML=ic('pause')}else{au.pause();btn.innerHTML=ic('play')}
+  };
+  wrap.append(btn,bar,lab);out.append(wrap);
+  if(m.vo)out.append(el('div',{className:'tr'+(m.tr?'':' none')},m.tr||'No words detected'));
+  return out;
+}
+function mediaNode(m,id){
+  if(m.vo||String(m.m||'').startsWith('audio/'))return voiceNode(m,id);
+  const M=$('msgs'),mt=String(m.m||''),fail=w=>w.replaceWith(el('span',{},"⚠️ Couldn't load"));
+  if(mt.startsWith('image/')){const w=el('span',{},'Loading image…');loadBlob(m,id).then(u=>w.replaceWith(el('img',{src:u,on:{click:()=>zoom(u),load:()=>{M.scrollTop=M.scrollHeight}}}))).catch(()=>fail(w));return w}
+  if(mt.startsWith('video/')){
+    const btn=el('button',{className:'media'},'▶ Video · '+mb(m.s));
+    btn.onclick=async()=>{btn.disabled=true;btn.textContent='Decrypting…';
+      try{const u=await loadBlob(m,id);btn.replaceWith(el('video',{src:u,controls:true,autoplay:true,playsInline:true}))}catch(e){fail(btn)}};
+    return btn;
+  }
+  const nm=String(m.nm||'file'),card=el('button',{className:'file',title:'Download'});
+  card.innerHTML=ic('file');card.append(el('span',{},el('b',{},nm),el('small',{},mb(m.s)+' · tap to download')));
+  card.onclick=async()=>{card.disabled=true;try{const u=await loadBlob(m,id),a=el('a',{href:u,download:nm});document.body.append(a);a.click();a.remove()}catch(e){alert("Couldn't load that file")}card.disabled=false};
+  return card;
+}
+function zoom(u){$('view').firstElementChild.src=u;$('view').classList.remove('hide')}
+async function renderMsgs(docs,id){
+  const out=await Promise.all(docs.map(d=>decryptMsg(d,id)));
+  if(openId!==id)return;
+  const M=$('msgs'),g=isG(id);
+  if(nodesFor!==id){nodes={};nodesFor=id;M.textContent='';lastDay=''}
+  M.querySelector('.empty')?.remove();
+  if(!out.length){M.append(emptyEl('send',"Say hi — it's end-to-end encrypted"));return}
+  const keep=new Set(docs.map(d=>d.id));
+  for(const k in nodes)if(!keep.has(k)){nodes[k].remove();delete nodes[k]}
+  const near=M.scrollHeight-M.scrollTop-M.clientHeight<150;let added=false;
+  out.forEach((m,i)=>{
+    const did=docs[i].id;if(nodes[did])return;
+    const mine=m.f===me.num,b=el('div',{className:'m'+(mine?' me':'')});
+    const dl=dayLbl(m.t);if(dl!==lastDay){lastDay=dl;M.append(el('div',{className:'day'},dl))}
+    if(g&&!mine)b.append(el('span',{className:'who',style:'color:'+avc(m.f)},disp(m.f)));
+    if(!mine&&isBlocked(m.f))b.append(el('span',{className:'hid'},'Message from a blocked number'));
+    else if(m.k==='i')b.append(el('img',{src:m.v,on:{click:()=>zoom(m.v),load:()=>{if(near)M.scrollTop=M.scrollHeight}}}));
+    else if(m.k==='f')b.append(mediaNode(m,id));
+    else if(m.k==='c'){b.classList.add('callm');b.append(callNode(m,id))}
+    else if(m.k==='t')linkify(b,m.v);
+    else{b.append("🔒 Can't decrypt (keys were reset)");b.style.opacity=.6}
+    if(mine||me.num===ADMIN){const del=el('button',{className:'mdel',title:'Delete for everyone'});del.innerHTML=ic('trash');del.onclick=e=>{e.stopPropagation();delMsg(did,m,id)};b.append(del)}
+    else if(!isBlocked(m.f)){const rp=el('button',{className:'mdel mrep',title:'Report message'});rp.innerHTML=ic('flag');rp.onclick=e=>{e.stopPropagation();reportMsg(did,m,id)};b.append(rp)}
+    b.addEventListener('click',e=>{if(e.target.closest('a,button,img,video,audio'))return;M.querySelectorAll('.m.sel').forEach(x=>{if(x!==b)x.classList.remove('sel')});b.classList.toggle('sel')});
+    b.append(el('time',{},when(m.t)));M.append(b);nodes[did]=b;added=true;
+  });
+  if(added&&(near||docs.length&&out[out.length-1].f===me.num))M.scrollTop=M.scrollHeight;
+  markSeen();
+}
+let sending=false;
+async function send(payload,id=openId,ix={}){
+  const lg=payload.k==='c';
+  if(!id||(sending&&!payload.k.startsWith("f")&&!lg))return;if(!lg){sending=true;$('send').disabled=true}
+  try{
+    const iv=crypto.getRandomValues(new Uint8Array(12));
+    const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},await keyFor(id),enc.encode(JSON.stringify(payload)));
+    const t=Date.now();
+    await db.collection('chats/'+cidOf(id)+'/msgs').add({f:me.num,ct:b64(ct),iv:b64(iv),t});
+    if(isG(id)){const g=groups[id];await Promise.all(g.members.map(n=>db.doc('inbox/'+n+'/from/'+id).set({t,n:g.name,by:me.num,...ix})))}
+    else{
+      await db.doc('inbox/'+id+'/from/'+me.num).set({t,n:me.name,by:me.num,...ix});
+      if(id!==me.num)await db.doc('inbox/'+me.num+'/from/'+id).set({t,n:names[id]||id,by:me.num});
+    }
+  }catch(e){alert('Send failed: '+(e.message||e.code))}
+  if(!lg){sending=false;$('send').disabled=false}
+}
+$('send').onclick=()=>{if(rec)return stopRec(true);const v=$('txt').value.trim();if(!v)return;$('txt').value='';send({k:'t',v})};
+$('txt').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey&&me.settings.enter!==false){e.preventDefault();$('send').click()}};
+/* ---------- calls ---------- */
+const ICE=(window.CIPHER_CONFIG&&CIPHER_CONFIG.iceServers)||[{urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302','stun:stun.cloudflare.com:3478']}];
+let call=null,unsubRing=null,ringTimer=null,actx=null;const seenRing=new Set();
+const hex16=()=>Array.from(crypto.getRandomValues(new Uint8Array(8)),b=>b.toString(16).padStart(2,'0')).join('');
+async function seal(num,o){const iv=crypto.getRandomValues(new Uint8Array(12));return{iv:b64(iv),ct:b64(await crypto.subtle.encrypt({name:'AES-GCM',iv},await sharedKey(num),enc.encode(JSON.stringify(o))))}}
+async function unseal(num,x){return JSON.parse(dec.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(x.iv)},await sharedKey(num),unb64(x.ct))))}
+const gathered=pc=>new Promise(res=>{if(pc.iceGatheringState==='complete')return res();const t=setTimeout(res,3500);pc.addEventListener('icegatheringstatechange',()=>{if(pc.iceGatheringState==='complete'){clearTimeout(t);res()}})});
+const getMedia=kind=>navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:kind==='video'?{width:{ideal:640},height:{ideal:480},facingMode:'user'}:false});
+function newPC(){
+  const pc=new RTCPeerConnection({iceServers:ICE});
+  pc._rs=new MediaStream();
+  pc.ontrack=e=>{const v=$('cRemote'),tr=e.track;pc._rs.addTrack(tr);if(v.srcObject!==pc._rs)v.srcObject=pc._rs;v.play().catch(()=>{});
+    if(tr.kind==='video'){const upd=()=>{if(call&&call.pc===pc){call.rv=!tr.muted&&tr.readyState==='live';callCls()}};tr.onmute=upd;tr.onunmute=upd;tr.onended=upd;upd()}};
+  pc.onconnectionstatechange=()=>{if(!call||call.pc!==pc)return;const st=pc.connectionState;
+    if(st==='connected')callLive();
+    else if(st==='failed')endCall('failed');
+    else if(st==='disconnected'&&call.state==='live')$('callSt').textContent='Reconnecting…'};
+  return pc;
+}
+function beep(f,len){try{actx=actx||new(window.AudioContext||window.webkitAudioContext)();actx.resume();const o=actx.createOscillator(),g=actx.createGain(),t=actx.currentTime;o.frequency.value=f;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.18,t+.04);g.gain.exponentialRampToValueAtTime(.0001,t+len);o.connect(g).connect(actx.destination);o.start(t);o.stop(t+len+.05)}catch(e){}}
+function startRing(out){stopRing();const go=()=>out?beep(440,1.2):(beep(660,.35),setTimeout(()=>beep(880,.35),400));go();ringTimer=setInterval(go,out?3000:1500)}
+function stopRing(){clearInterval(ringTimer);ringTimer=null}
+const vSender=pc=>{const t=pc.getTransceivers().find(t=>t.mid!==null&&!t.stopped&&(t.sender.track&&t.sender.track.kind==='video')||(t.receiver&&t.receiver.track&&t.receiver.track.kind==='video'));return t&&t.sender};
+const pcsOf=c=>c.group?[...c.pcs.values()].map(x=>x.pc):(c.pc?[c.pc]:[]);
+function callCls(){const c=call;if(!c)return;const C=$('call').classList,cam=c.local&&c.local.getVideoTracks().some(t=>t.enabled&&t.readyState==='live');
+  C.toggle('grp',!!c.group);C.toggle('inc',c.state==='incoming');
+  C.toggle('vid',c.kind==='video');C.toggle('lv',!c.group&&!!(c.sharing||cam));C.toggle('sharing',!!c.sharing);C.toggle('rv',!c.group&&!!c.rv);
+  if(c.group){const st=c.tiles&&c.tiles.get('me');if(st){const v=st.querySelector('video'),src=c.sharing||c.local||null;if(v.srcObject!==src)v.srcObject=src;st.classList.toggle('v',!!(c.sharing||cam));st.classList.toggle('scr',!!c.sharing)}}
+  else $('cLocal').srcObject=c.sharing||c.local||null}
+async function startShare(){
+  const c=call;if(!c||c.sharing||c.state==='incoming'||(!c.group&&!c.pc))return;
+  let st;try{st=await navigator.mediaDevices.getDisplayMedia({video:{frameRate:{ideal:15,max:30}},audio:false})}catch(e){return}
+  if(call!==c){st.getTracks().forEach(t=>t.stop());return}
+  const tr=st.getVideoTracks()[0];tr.contentHint='detail';
+  for(const pc of pcsOf(c)){const snd=vSender(pc);try{snd&&await snd.replaceTrack(tr)}catch(e){}}
+  c.sharing=st;tr.onended=()=>stopShare();$('cShare').classList.add('off');callCls();
+}
+async function stopShare(){
+  const c=call;if(!c||!c.sharing)return;const st=c.sharing;c.sharing=null;st.getTracks().forEach(t=>t.stop());
+  const cam=c.local&&c.local.getVideoTracks().find(t=>t.enabled);
+  for(const pc of pcsOf(c)){const snd=vSender(pc);try{snd&&await snd.replaceTrack(cam||null)}catch(e){}}
+  $('cShare').classList.remove('off');callCls();
+}
+function showCall(){
+  const c=call;if(!c)return;const nm=c.group?((groups[c.gid]&&groups[c.gid].name)||'Group call'):disp(c.peer);
+  const a=avatar(c.group?c.gid:c.peer,nm,!!c.group);a.id='callAv';$('callAv').replaceWith(a);
+  $('callName').textContent=nm;
+  $('call').className='';
+  const inc=c.group?c.state==='incoming':(c.role==='callee'&&!c.pc);$('cIn').classList.toggle('hide',!inc);$('cAct').classList.toggle('hide',inc);
+  $('cCam').classList.toggle('hide',c.kind!=='video');$('cMute').classList.remove('off');$('cCam').classList.remove('off');
+  $('cMute').innerHTML=ic('mic');$('cCam').innerHTML=ic('video');
+  $('cShare').classList.toggle('hide',inc||!(navigator.mediaDevices&&navigator.mediaDevices.getDisplayMedia));$('cShare').classList.remove('off');
+  callCls();
+}
+function hideCall(){if(!call){$('call').classList.add('hide');$('cRemote').srcObject=null;$('cLocal').srcObject=null}}
+function callLive(){const c=call;if(!c||c.state==='live')return;c.state='live';stopRing();clearTimeout(c.timeout);$('call').classList.add('live');
+  const t0=Date.now();c.t0=t0;$('callSt').textContent='0:00';c.tick=setInterval(()=>{if(call===c)$('callSt').textContent=(c.group?((c.parts?c.parts.size:0)+1)+' in call · ':'')+fmt((Date.now()-t0)/1000)},1000)}
+function callNote(title,body){if(!document.hidden||!me.settings.notify||!('Notification' in window)||Notification.permission!=='granted')return;
+  const o={body,icon:'/icon-192.png',tag:'call',renotify:true,requireInteraction:true};
+  try{if(navigator.serviceWorker&&navigator.serviceWorker.controller)navigator.serviceWorker.ready.then(r=>r.showNotification(title,o));else new Notification(title,o)}catch(e){}}
+async function startCall(kind){
+  const peer=openId;if(!peer||peer===me.num||call)return;if(isG(peer))return joinGroupCall(peer,kind);
+  if(!window.RTCPeerConnection||!navigator.mediaDevices)return alert("Calls aren't supported in this browser");
+  let local;try{local=await getMedia(kind)}catch(e){return alert((kind==='video'?'Camera or microphone':'Microphone')+' blocked. Allow it in your browser site settings (icon left of the address bar), then try again.')}
+  const id=hex16(),pc=newPC();local.getTracks().forEach(t=>pc.addTrack(t,local));if(kind!=='video')pc.addTransceiver('video',{direction:'sendrecv'});
+  const c=call={id,peer,kind,pc,local,role:'caller',state:'calling'};
+  showCall();$('callSt').textContent='Calling…';startRing(true);
+  try{
+    await pc.setLocalDescription(await pc.createOffer());await gathered(pc);if(call!==c)return;
+    const offer=await seal(peer,{type:'offer',sdp:pc.localDescription.sdp}),t=Date.now();
+    await db.doc('rtc/'+id).set({from:me.num,to:peer,kind,offer,state:'ringing',t});
+    await db.doc('ring/'+peer+'/in/'+id).set({from:me.num,kind,t});
+    if(call!==c)return;c.ringing=1;$('callSt').textContent='Ringing…';
+    c.unsub=db.doc('rtc/'+id).onSnapshot(async s=>{if(call!==c)return;const d=s.exists?s.data():null;
+      if(!d||['ended','declined','busy'].includes(d.state))return endCall(d?d.state:'ended',true);
+      if(d.answer&&!c.answered){c.answered=true;stopRing();$('callSt').textContent='Connecting…';
+        try{const a=await unseal(peer,d.answer);if(a.type!=='answer')throw 0;await pc.setRemoteDescription(a)}catch(e){endCall('failed')}}},()=>{});
+    c.timeout=setTimeout(()=>{if(call===c&&!c.answered)endCall('no answer')},45000);
+  }catch(e){endCall('failed')}
+}
+async function onRing(s){
+  for(const d of s.docs){
+    if(seenRing.has(d.id))continue;seenRing.add(d.id);const r=d.data();
+    if(Math.abs(Date.now()-r.t)>60000){db.doc('ring/'+me.num+'/in/'+d.id).delete().catch(()=>{});continue}
+    if(r.g){
+      if(call||isBlocked(r.from)){db.doc('ring/'+me.num+'/in/'+d.id).delete().catch(()=>{});continue}
+      try{await getGroup(String(r.g));await getPub(r.from)}catch(e){continue}
+      const c=call={group:true,gid:String(r.g),id:d.id,kind:r.kind==='video'?'video':'audio',role:'callee',state:'incoming',peer:String(r.from),pcs:new Map()};
+      showCall();const kk=c.kind==='video'?'video':'voice';$('callSt').textContent=disp(c.peer)+' started a group '+kk+' call';startRing(false);
+      callNote((groups[c.gid]||{}).name||'Group call',disp(c.peer)+' started a group '+kk+' call');
+      c.unsub=db.doc('gcall/'+c.gid.slice(2)).onSnapshot(x=>{if(call!==c||c.state!=='incoming')return;const g=x.exists?x.data():null;if(!g||!g.on||g.id!==c.id)endCall('missed',true)},()=>{});
+      c.timeout=setTimeout(()=>{if(call===c&&c.state==='incoming')endCall('missed')},45000);
+      continue;
+    }
+    if(isBlocked(r.from)||call){db.doc('rtc/'+d.id).update({state:call?'busy':'declined'}).catch(()=>{});db.doc('ring/'+me.num+'/in/'+d.id).delete().catch(()=>{});continue}
+    try{await getPub(r.from)}catch(e){continue}
+    const c=call={id:d.id,peer:String(r.from),kind:r.kind==='video'?'video':'audio',role:'callee',state:'incoming'};
+    showCall();$('callSt').textContent='Incoming '+(c.kind==='video'?'video':'voice')+' call';startRing(false);
+    callNote(disp(c.peer),'Incoming '+(c.kind==='video'?'video':'voice')+' call');
+    c.unsub=db.doc('rtc/'+c.id).onSnapshot(x=>{if(call!==c)return;const dd=x.exists?x.data():null;if(!dd||dd.state==='ended')endCall(c.state==='live'?'ended':'missed',true)},()=>{});
+    c.timeout=setTimeout(()=>{if(call===c&&!c.pc)endCall('missed')},45000);
+  }
+}
+async function acceptCall(){
+  if(call&&call.group){if(call.state==='incoming')joinGroupCall(call.gid,call.kind,call.id);return}
+  const c=call;if(!c||c.role!=='callee'||c.pc)return;stopRing();
+  let local;try{local=await getMedia(c.kind)}catch(e){alert('Microphone'+(c.kind==='video'?' or camera':'')+' blocked. Allow it in your browser site settings, then ask them to call again.');return endCall('declined')}
+  if(call!==c){local.getTracks().forEach(t=>t.stop());return}
+  const pc=newPC();c.pc=pc;c.local=local;
+  showCall();$('callSt').textContent='Connecting…';
+  try{
+    const s=await db.doc('rtc/'+c.id).get();if(!s.exists||s.data().state!=='ringing')return endCall('missed',true);
+    const off=await unseal(c.peer,s.data().offer);if(off.type!=='offer')throw new Error('bad');
+    await pc.setRemoteDescription(off);
+    local.getTracks().forEach(t=>pc.addTrack(t,local));
+    pc.getTransceivers().forEach(t=>{if(t.receiver.track&&t.receiver.track.kind==='video'&&!t.stopped)t.direction='sendrecv'});
+    await pc.setLocalDescription(await pc.createAnswer());await gathered(pc);if(call!==c)return;
+    await db.doc('rtc/'+c.id).update({answer:await seal(c.peer,{type:'answer',sdp:pc.localDescription.sdp}),state:'accepted'});
+    clearTimeout(c.timeout);c.timeout=setTimeout(()=>{if(call===c&&c.state!=='live')endCall('failed')},30000);
+  }catch(e){endCall('failed')}
+  db.doc('ring/'+me.num+'/in/'+c.id).delete().catch(()=>{});
+}
+function endCall(reason,remote){
+  if(call&&call.group)return endGroup(reason);
+  const c=call;if(!c)return;call=null;stopRing();clearTimeout(c.timeout);clearInterval(c.tick);
+  if(c.role==='caller'&&c.logged!==1&&(c.t0||c.ringing)){c.logged=1;const st=c.t0?'answered':({declined:'declined',busy:'busy','no answer':'no answer',failed:'failed'}[reason]||'cancelled');
+    send({k:'c',kind:c.kind,by:me.num,st,d:c.t0?Math.round((Date.now()-c.t0)/1000):0},c.peer,st==='answered'?{q:1}:{mc:1}).catch(()=>{})}
+  if(c.unsub)c.unsub();if(c.sharing)c.sharing.getTracks().forEach(t=>t.stop());try{c.pc&&c.pc.close()}catch(e){}if(c.local)c.local.getTracks().forEach(t=>t.stop());
+  if(!remote){db.doc('rtc/'+c.id).update({state:reason==='declined'?'declined':'ended'}).catch(()=>{});db.doc('ring/'+c.peer+'/in/'+c.id).delete().catch(()=>{});db.doc('ring/'+me.num+'/in/'+c.id).delete().catch(()=>{})}
+  const msg={declined:c.role==='caller'?'Call declined':'Declined',busy:'Busy',['no answer']:'No answer',failed:"Couldn't connect — network may be blocking calls",missed:'Missed call'}[reason]||'Call ended';
+  $('callSt').textContent=msg;$('cIn').classList.add('hide');$('cAct').classList.add('hide');$('call').classList.remove('live','rv','lv','sharing');
+  setTimeout(hideCall,reason==='failed'?3000:1400);
+}
+/* ---------- group calls ---------- */
+const MAXG=8;
+function tileFor(c,n){
+  c.tiles=c.tiles||new Map();let t=c.tiles.get(n);if(t)return t;
+  const self=n==='me',num=self?me.num:n,nm=self?'You':disp(n);
+  t=el('div',{className:'tile'+(self?' me':' wait')},el('video',{autoplay:true,playsInline:true,muted:self}),avatar(num,nm),el('span',{className:'lbl'},nm));
+  c.tiles.set(n,t);$('grid').append(t);return t;
+}
+function addLocal(c,pc){c.local.getTracks().forEach(t=>pc.addTrack(t,c.local))}
+function gPC(c,n,offerer){
+  const pc=new RTCPeerConnection({iceServers:ICE}),rs=new MediaStream(),x={pc,rs};c.pcs.set(n,x);
+  if(offerer){addLocal(c,pc);if(c.kind!=='video')pc.addTransceiver('video',{direction:'sendrecv'})}
+  pc.ontrack=e=>{rs.addTrack(e.track);const tl=tileFor(c,n),v=tl.querySelector('video');if(v.srcObject!==rs)v.srcObject=rs;v.play().catch(()=>{});
+    if(e.track.kind==='video'){const u=()=>tl.classList.toggle('v',!e.track.muted&&e.track.readyState==='live');e.track.onmute=u;e.track.onunmute=u;e.track.onended=u;u()}};
+  pc.onconnectionstatechange=()=>{const tl=c.tiles&&c.tiles.get(n);if(tl)tl.classList.toggle('wait',pc.connectionState!=='connected')};
+  tileFor(c,n);return pc;
+}
+async function shareInto(c,pc){if(c.sharing){const snd=vSender(pc);try{snd&&await snd.replaceTrack(c.sharing.getVideoTracks()[0])}catch(e){}}else if(!c.local.getVideoTracks().some(t=>t.enabled)){const snd=vSender(pc);try{snd&&await snd.replaceTrack(null)}catch(e){}}}
+function closePeer(c,n){const x=c.pcs.get(n);if(x){try{x.pc.close()}catch(e){}c.pcs.delete(n)}const t=c.tiles&&c.tiles.get(n);if(t){t.remove();c.tiles.delete(n)}}
+async function offerTo(c,n){
+  const pc=gPC(c,n,true),x=c.pcs.get(n);x.offered=true;
+  try{await getPub(n);await shareInto(c,pc);await pc.setLocalDescription(await pc.createOffer());await gathered(pc);if(call!==c||c.pcs.get(n)!==x)return;
+    x.offerT=Date.now();await db.doc('gc/'+c.id+'/sig/'+me.num+'_'+n).set({from:me.num,to:n,offer:await seal(n,{type:'offer',sdp:pc.localDescription.sdp}),t:x.offerT})}catch(e){}
+}
+async function answerFrom(c,n,docId,d){
+  if(c.pcs.has(n))closePeer(c,n);
+  const pc=gPC(c,n,false),x=c.pcs.get(n);
+  try{await getPub(n);const o=await unseal(n,d.offer);if(o.type!=='offer')throw 0;
+    await pc.setRemoteDescription(o);addLocal(c,pc);
+    pc.getTransceivers().forEach(t=>{if(t.receiver.track&&t.receiver.track.kind==='video'&&!t.stopped)t.direction='sendrecv'});
+    await shareInto(c,pc);await pc.setLocalDescription(await pc.createAnswer());await gathered(pc);if(call!==c||c.pcs.get(n)!==x)return;
+    await db.doc('gc/'+c.id+'/sig/'+docId).set({...d,answer:await seal(n,{type:'answer',sdp:pc.localDescription.sdp})});
+  }catch(e){}
+}
+function onParts(c,s){
+  if(call!==c)return;const now=Date.now(),parts=new Map();
+  for(const d of s.docs){if(d.id===me.num)continue;const p=d.data();if(now-(+p.hb||0)>30000)continue;parts.set(d.id,+p.t||0)}
+  c.parts=parts;
+  for(const n of [...c.pcs.keys()])if(!parts.has(n))closePeer(c,n);
+  for(const [n,t] of parts)if(!c.pcs.has(n)&&(t<c.joinT||(t===c.joinT&&n<me.num)))offerTo(c,n);
+}
+function onSig(c,s){
+  if(call!==c)return;c.done=c.done||new Set();
+  for(const d of s.docs){const x=d.data();
+    if(x.to===me.num&&x.offer&&!x.answer){const k=d.id+':'+x.t;if(!c.done.has(k)){c.done.add(k);answerFrom(c,String(x.from),d.id,x)}}
+    if(x.from===me.num&&x.answer){const p=c.pcs.get(String(x.to));if(p&&p.offered&&!p.answered&&p.offerT===x.t){p.answered=true;unseal(String(x.to),x.answer).then(a=>{if(a.type==='answer')return p.pc.setRemoteDescription(a)}).catch(()=>{})}}
+  }
+}
+async function joinGroupCall(gid,kindReq,inviteId){
+  const prev=call;if(prev&&!(prev.group&&prev.state==='incoming'))return;
+  if(prev){stopRing();clearTimeout(prev.timeout);if(prev.unsub)prev.unsub();db.doc('ring/'+me.num+'/in/'+prev.id).delete().catch(()=>{})}
+  let g;try{g=await getGroup(gid)}catch(e){call=null;hideCall();return alert(e.message)}
+  let cur=null;
+  try{const s=await db.doc('gcall/'+gid.slice(2)).get();if(s.exists&&s.data().on){cur=s.data();
+    const ps=await db.collection('gc/'+cur.id+'/p').get(),alive=ps.docs.filter(d=>d.id!==me.num&&Date.now()-(+d.data().hb||0)<30000);
+    if(!alive.length)cur=null;else if(alive.length>=MAXG){call=null;hideCall();return alert('This call is full (max '+MAXG+' people)')}}}catch(e){}
+  if(inviteId&&(!cur||cur.id!==inviteId)){if(prev){call=prev;endGroup('missed')}return}
+  const kind=cur?cur.kind:kindReq;
+  if(!window.RTCPeerConnection||!navigator.mediaDevices){call=null;hideCall();return alert("Calls aren't supported in this browser")}
+  let local;try{local=await getMedia(kind)}catch(e){call=null;hideCall();return alert((kind==='video'?'Camera or microphone':'Microphone')+' blocked. Allow it in your browser site settings, then try again.')}
+  const id=cur?cur.id:hex16(),c=call={group:true,gid,id,kind,local,role:cur?'member':'host',state:'joining',pcs:new Map(),peer:gid,joinT:Date.now()};
+  $('grid').textContent='';showCall();tileFor(c,'me');callCls();callLive();
+  try{
+    if(!cur){
+      await db.doc('gcall/'+gid.slice(2)).set({on:true,id,kind,by:me.num,t:Date.now()});
+      const t=Date.now();await Promise.all(g.members.filter(n=>n!==me.num).map(n=>db.doc('ring/'+n+'/in/'+id).set({from:me.num,kind,t,g:gid})));
+      send({k:'c',kind,by:me.num,st:'group'},gid,{q:1}).catch(()=>{});
+    }
+    const hb=()=>db.doc('gc/'+id+'/p/'+me.num).set({t:c.joinT,hb:Date.now()});
+    await hb();c.hbT=setInterval(()=>{if(call===c)hb().catch(()=>{})},10000);
+    c.unsubP=db.collection('gc/'+id+'/p').onSnapshot(s=>onParts(c,s),()=>{});
+    c.unsubS=db.collection('gc/'+id+'/sig').onSnapshot(s=>onSig(c,s),()=>{});
+  }catch(e){endGroup('failed')}
+}
+function endGroup(reason){
+  const c=call;if(!c)return;call=null;stopRing();clearTimeout(c.timeout);clearInterval(c.tick);clearInterval(c.hbT);
+  [c.unsub,c.unsubP,c.unsubS].forEach(u=>u&&u());if(c.sharing)c.sharing.getTracks().forEach(t=>t.stop());
+  for(const n of [...c.pcs.keys()])closePeer(c,n);if(c.local)c.local.getTracks().forEach(t=>t.stop());
+  if(c.state==='incoming'){db.doc('ring/'+me.num+'/in/'+c.id).delete().catch(()=>{})}
+  else{db.doc('gc/'+c.id+'/p/'+me.num).delete().catch(()=>{});
+    if(!c.parts||!c.parts.size)db.doc('gcall/'+c.gid.slice(2)).set({on:false,id:c.id,kind:c.kind,t:Date.now()}).catch(()=>{})}
+  $('grid').textContent='';
+  $('callSt').textContent=reason==='missed'?'Missed group call':reason==='declined'?'Declined':reason==='failed'?"Couldn't join the call":'You left the call';
+  $('cIn').classList.add('hide');$('cAct').classList.add('hide');$('call').classList.remove('live','inc');
+  setTimeout(hideCall,1200);
+}
+$('callA').onclick=()=>startCall('audio');$('callV').onclick=()=>startCall('video');
+$('cAccept').onclick=acceptCall;$('cDecline').onclick=()=>endCall('declined');$('cHang').onclick=()=>endCall('ended');
+$('cMute').onclick=()=>{if(!call||!call.local)return;const a=call.local.getAudioTracks(),on=!a[0]||!a[0].enabled;a.forEach(t=>t.enabled=on);$('cMute').classList.toggle('off',!on);$('cMute').innerHTML=ic(on?'mic':'micoff')};
+$('cCam').onclick=async()=>{const c=call;if(!c||!c.local)return;const v=c.local.getVideoTracks(),on=!v[0]||!v[0].enabled;v.forEach(t=>t.enabled=on);$('cCam').classList.toggle('off',!on);$('cCam').innerHTML=ic(on?'video':'camoff');
+  if(!c.sharing)for(const pc of pcsOf(c)){const snd=vSender(pc);try{snd&&await snd.replaceTrack(on?v[0]:null)}catch(e){}}callCls()};
+$('cShare').onclick=()=>call&&(call.sharing?stopShare():startShare());$('shareBar').onclick=()=>stopShare();
+addEventListener('beforeunload',()=>{if(call)endCall('ended')});
+
+let rec=null;
+function recUI(on){$('composer').querySelector('.box').classList.toggle('hide',on);$('rec').classList.toggle('hide',!on);$('photoBtn').disabled=on}
+$('micBtn').onclick=async()=>{
+  if(!openId||sending||rec)return;
+  if(!navigator.mediaDevices||!window.MediaRecorder)return alert("Voice messages aren't supported in this browser");
+  let stream;try{stream=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){return alert('Microphone blocked. Allow it in your browser site settings (icon left of the address bar), then try again.')}
+  const type=['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg'].find(t=>MediaRecorder.isTypeSupported(t))||'';
+  const mr=new MediaRecorder(stream,type?{mimeType:type,audioBitsPerSecond:32000}:{});
+  const r={mr,stream,chunks:[],start:Date.now(),final:'',interim:'',id:openId,on:true,sr:null};rec=r;
+  mr.ondataavailable=e=>{if(e.data.size)r.chunks.push(e.data)};
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  $('recTx').textContent=SR?'Listening…':'Recording…';
+  if(SR){const sr=new SR();sr.continuous=true;sr.interimResults=true;sr.lang=navigator.language||'en-GB';
+    sr.onresult=e=>{let it='';for(let i=e.resultIndex;i<e.results.length;i++){const x=e.results[i];if(x.isFinal)r.final+=x[0].transcript+' ';else it+=x[0].transcript}r.interim=it;if(r.on)$('recTx').textContent=(r.final+it).trim()||'Listening…'};
+    sr.onend=()=>{if(r.on)try{sr.start()}catch(e){}};sr.onerror=()=>{};
+    r.sr=sr;try{sr.start()}catch(e){}}
+  mr.start(250);recUI(true);$('recT').textContent='0:00';
+  r.timer=setInterval(()=>{const t=(Date.now()-r.start)/1000;$('recT').textContent=fmt(t);if(t>=120)stopRec(true)},250);
+};
+function stopRec(sendIt){
+  const r=rec;if(!r)return;rec=null;r.on=false;clearInterval(r.timer);recUI(false);
+  const stopped=new Promise(res=>{r.mr.onstop=res});
+  try{r.mr.stop()}catch(e){}r.stream.getTracks().forEach(t=>t.stop());
+  if(!sendIt){try{r.sr&&r.sr.abort()}catch(e){}return}
+  try{r.sr&&r.sr.stop()}catch(e){}
+  const dur=Math.round((Date.now()-r.start)/1000);
+  stopped.then(async()=>{
+    await new Promise(x=>setTimeout(x,900));
+    const blob=new Blob(r.chunks,{type:(r.mr.mimeType||'audio/webm').split(';')[0]});
+    if(dur<1||!blob.size)return;
+    const tr=(r.final+' '+r.interim).replace(/\s+/g,' ').trim().slice(0,4000);
+    const ext=blob.type.includes('mp4')?'m4a':blob.type.includes('ogg')?'ogg':'webm';
+    try{await sendFile(new File([blob],'voice-message.'+ext,{type:blob.type}),r.id,{vo:1,d:dur,tr})}catch(e){alert("Couldn't send voice message")}
+  });
+}
+$('recX').onclick=()=>stopRec(false);
+$('photoBtn').onclick=()=>$('file').click();
+const MAXF=8*1048576,CH=180000;
+async function handleFiles(files){
+  const id=openId;if(!id||sending||!files.length)return;
+  for(const f of files){
+    try{
+      if(f.type.startsWith('image/')&&f.type!=='image/gif'){try{await send({k:'i',v:await shrink(f)},id);continue}catch(e){}}
+      if(f.size>MAXF){alert(f.name+' is '+mb(f.size)+' — max is 8 MB');continue}
+      await sendFile(f,id);
+    }catch(err){alert("Couldn't send "+f.name)}
+  }
+}
+$('file').onchange=e=>{const fs=[...e.target.files];e.target.value='';handleFiles(fs)};
+$('main').addEventListener('dragover',e=>{if(openId)e.preventDefault()});
+$('main').addEventListener('drop',e=>{if(!openId)return;e.preventDefault();handleFiles([...e.dataTransfer.files])});
+$('txt').addEventListener('paste',e=>{const fs=[...((e.clipboardData&&e.clipboardData.files)||[])];if(fs.length){e.preventDefault();handleFiles(fs)}});
+async function sendFile(f,id,extra={}){
+  sending=true;const S=$('send');S.disabled=true;
+  try{
+    const iv=crypto.getRandomValues(new Uint8Array(12));
+    S.textContent='…';
+    const ct=b64(await crypto.subtle.encrypt({name:'AES-GCM',iv},await keyFor(id),await f.arrayBuffer()));
+    const bid=Array.from(crypto.getRandomValues(new Uint8Array(8)),x=>x.toString(16).padStart(2,'0')).join(''),n=Math.ceil(ct.length/CH),cid=cidOf(id);
+    for(let i=0;i<n;i+=4){
+      S.textContent=Math.round(i/n*100)+'%';
+      await Promise.all(Array.from({length:Math.min(4,n-i)},(_,j)=>db.doc('chats/'+cid+'/parts/'+bid+'_'+(i+j)).set({d:ct.slice((i+j)*CH,(i+j+1)*CH)})));
+    }
+        await send({k:'f',b:bid,n,iv:b64(iv),m:f.type||'application/octet-stream',s:f.size,nm:String(f.name||'file').slice(0,120),...extra},id);
+  }finally{sending=false;S.disabled=false;S.innerHTML=ic('send')}
+}
+async function shrink(file){
+  const img=await createImageBitmap(file);let max=1280,q=.82;
+  for(;;){
+    const s=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement('canvas');
+    c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    const d=c.toDataURL('image/jpeg',q);
+    if(d.length<140000||max<240)return d;
+    if(q>.55)q-=.12;else max=Math.round(max*.75);
+  }
+}
+$('view').onclick=()=>$('view').classList.add('hide');
+$('back').onclick=()=>{if(rec)stopRec(false);$('callA').classList.add('hide');$('callV').classList.add('hide');openId=null;nodesFor=null;$('cAv').classList.add('hide');if(unsubMsgs){unsubMsgs();unsubMsgs=null}$('app').classList.remove('chat');$('composer').classList.add('hide');$('infoBtn').classList.add('hide');$('cName').textContent='Pick a chat';$('cSub').textContent='';$('msgs').textContent='';$('msgs').append(welcome());renderList()};
+$('lockBtn').onclick=()=>{if(confirm('Log out?'))logout()};
+
+$('logo').innerHTML='<svg viewBox="60 60 392 392"><path d="M340.85 171.15A120 120 0 1 0 340.85 340.85" fill="none" stroke="#fff" stroke-width="48" stroke-linecap="round"/><path d="M231 256v-24a25 25 0 0 1 50 0v24" fill="none" stroke="#fff" stroke-width="16" stroke-linecap="round"/><rect x="214" y="252" width="84" height="66" rx="14" fill="#fff"/></svg>';for(const[k,v]of[['admBtn','shield'],['setBtn','gear'],['lockBtn','out'],['grpBtn','group'],['back','back'],['infoBtn','info'],['photoBtn','clip'],['callA','phone'],['callV','video'],['cAccept','phone'],['cDecline','phone'],['cHang','phone'],['cMute','mic'],['cCam','video'],['cShare','screen'],['micBtn','mic'],['recX','x'],['send','send']])$(k).innerHTML=ic(v);$('msgs').append(welcome());
+init();
+if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+</script>
+</body>
+</html>
