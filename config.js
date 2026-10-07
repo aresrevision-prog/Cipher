@@ -1,6 +1,4 @@
-// Paste your Supabase project details here (Project Settings → API).
-// The anon key is safe to be public — the database rules in supabase.sql protect your data.
 window.CIPHER_CONFIG = {
-  url: "https://YOUR-PROJECT.supabase.co",
-  anonKey: "YOUR-ANON-KEY"
+  url: "https://wnpvskzbzahpqdiuoqkc.supabase.co",
+  anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InducHZza3piemFocHFkaXVvcWtjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEzMTMxMjQsImV4cCI6MjEwNjg4OTEyNH0.7CN9BNaFJ8-sroZcJshcEI5wRUa7BjPEt5FsicLJi34"
 };
