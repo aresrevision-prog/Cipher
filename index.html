@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cipher</title>
+<meta name="theme-color" content="#6246ea">
+<meta name="description" content="Private, end-to-end encrypted messaging">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="/config.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef0f7;--panel:#ffffffd9;--solid:#fff;--ink:#12131a;--mute:#6b7085;--line:#e3e5ef;--acc:#6246ea;--acc2:#2f80ed;--accink:#fff;--them:#fff;--chat:#f5f6fb;--bad:#e5484d;--shadow:0 10px 40px -12px #1b1f4a33;
+--grad:linear-gradient(135deg,var(--acc),var(--acc2));
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b0c12;--panel:#14161fd9;--solid:#14161f;--ink:#ecedf3;--mute:#8c90a6;--line:#232636;--acc:#7c64ff;--acc2:#3d8bff;--them:#1e2130;--chat:#0f1018;--shadow:0 10px 40px -12px #000a}}
+:root[data-theme="dark"]{--bg:#0b0c12;--panel:#14161fd9;--solid:#14161f;--ink:#ecedf3;--mute:#8c90a6;--line:#232636;--acc:#7c64ff;--acc2:#3d8bff;--them:#1e2130;--chat:#0f1018;--shadow:0 10px 40px -12px #000a}
+*,*:before,*:after{box-sizing:inherit}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 "Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;border:0;border-radius:12px;padding:11px 16px;background:var(--grad);color:var(--accink);font-weight:700;flex:none;transition:transform .12s,filter .15s,opacity .15s;box-shadow:0 6px 18px -8px var(--acc)}
+button:hover{filter:brightness(1.08)}button:active{transform:scale(.97)}
+button.ghost{background:transparent;color:var(--mute);padding:8px;box-shadow:none;border-radius:10px;display:inline-flex;align-items:center;justify-content:center}
+button.ghost:hover{background:var(--line);color:var(--ink);filter:none}
+button.danger{background:transparent;color:var(--bad);border:1.5px solid color-mix(in srgb,var(--bad) 45%,transparent);box-shadow:none}
+button:disabled{opacity:.5;cursor:default;transform:none}
+svg.i{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+input,select{width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;background:var(--solid);outline:none;transition:border-color .15s,box-shadow .15s}
+input[type=checkbox]{width:18px;height:18px;flex:none;accent-color:var(--acc);padding:0}
+input:focus,select:focus{border-color:var(--acc);box-shadow:0 0 0 4px color-mix(in srgb,var(--acc) 18%,transparent)}
+.hide{display:none!important}
+.center{height:100%;display:flex;align-items:center;justify-content:center;padding:20px}
+#auth{background:radial-gradient(1200px 600px at 10% -10%,color-mix(in srgb,var(--acc) 35%,transparent),transparent 60%),radial-gradient(900px 600px at 110% 110%,color-mix(in srgb,var(--acc2) 30%,transparent),transparent 60%),var(--bg)}
+.card{background:var(--solid);border:1px solid var(--line);border-radius:22px;padding:26px;width:100%;max-width:410px;display:flex;flex-direction:column;gap:13px;max-height:100%;overflow-y:auto;box-shadow:var(--shadow)}
+#auth .card{padding:30px}
+.logo{width:56px;height:56px;border-radius:18px;background:var(--grad);display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 10px 26px -8px var(--acc);margin-bottom:2px}
+.logo svg{width:44px;height:44px}
+.card h1{margin:0;font-size:22px;font-weight:800;letter-spacing:-.02em}
+.card h2{margin:8px 0 0;font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.09em;font-weight:700}
+.card p{margin:0;color:var(--mute);font-size:13px}
+.err{color:var(--bad);font-size:13px;min-height:1em;font-weight:500}
+label{font-size:12px;color:var(--mute);display:flex;flex-direction:column;gap:6px;font-weight:600}
+label.chk{flex-direction:row;align-items:center;gap:10px;font-size:14px;color:var(--ink);cursor:pointer;font-weight:500}
+.row{display:flex;gap:8px;align-items:center}
+#app{height:100%;display:flex;background:var(--bg)}
+#side{width:340px;max-width:100%;border-right:1px solid var(--line);background:var(--solid);display:flex;flex-direction:column}
+#main{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--chat);position:relative}
+#main:before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;background-image:radial-gradient(color-mix(in srgb,var(--acc) 22%,transparent) 1px,transparent 1px);background-size:22px 22px}
+.bar{display:flex;align-items:center;gap:6px;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--panel);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);min-height:64px;position:relative;z-index:1}
+.bar .t{flex:1;min-width:0}
+.bar .t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700}
+.bar .t small{color:var(--mute);font-size:12px}
+#cHead{cursor:pointer;display:flex;align-items:center;gap:10px}
+#cHead .tx{min-width:0;flex:1}
+.tabs{display:flex;gap:4px;padding:4px;margin:10px 12px 0;background:var(--bg);border-radius:12px}
+.tabs button{flex:1;background:transparent;color:var(--mute);border-radius:9px;padding:8px;box-shadow:none;font-weight:600}
+.tabs button.on{background:var(--solid);color:var(--ink);box-shadow:0 2px 8px -2px #0002}
+#auth .tabs{margin:4px 0 2px}
+.tool{display:flex;gap:8px;padding:12px}
+.tool input{padding:10px 12px}
+.tool button{padding:10px 13px}
+.list{flex:1;overflow-y:auto;padding:0 8px 8px}
+.item{display:flex;align-items:center;gap:12px;padding:10px;border-radius:14px;cursor:pointer;transition:background .12s}
+.item:hover{background:var(--bg)}
+.item.on{background:color-mix(in srgb,var(--acc) 12%,transparent)}
+.av{width:44px;height:44px;border-radius:50%;background:var(--grad);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;flex:none;font-size:16px}
+.av svg{width:20px;height:20px}
+.av.sm{width:34px;height:34px;font-size:13px}
+.item .t{flex:1;min-width:0}.item .t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}.item small{color:var(--mute);font-size:12.5px}
+.item .x{opacity:0}.item:hover .x{opacity:1}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--grad);flex:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 20%,transparent)}
+#msgs{flex:1;overflow-y:auto;padding:18px 18px 10px;display:flex;flex-direction:column;gap:4px;position:relative}
+.m{max-width:min(72%,560px);padding:9px 13px 6px;border-radius:20px 20px 20px 6px;background:var(--them);word-wrap:break-word;white-space:pre-wrap;align-self:flex-start;box-shadow:0 1px 2px #0000000f,0 4px 14px -8px #0002;animation:pop .18s ease-out}
+.m.me{background:var(--grad);color:var(--accink);align-self:flex-end;border-radius:20px 20px 6px 20px}
+@keyframes pop{from{opacity:0;transform:translateY(6px) scale(.98)}}
+.m .who{display:block;font-size:11.5px;font-weight:700;margin-bottom:2px}
+.m a{color:inherit;text-decoration:underline;text-underline-offset:2px;word-break:break-all}
+.m:not(.me) a{color:var(--acc)}
+.m img,.m video{display:block;max-width:100%;max-height:340px;border-radius:14px;margin:2px -7px 0;max-width:calc(100% + 14px);cursor:zoom-in}
+.m video{background:#000;cursor:default}
+.media{background:#0000002a;color:inherit;border-radius:14px;padding:22px 26px;font-weight:700;box-shadow:none;margin:2px 0}
+.m:not(.me) .media{background:var(--bg);color:var(--ink)}
+.m time{display:block;font-size:10.5px;opacity:.6;margin-top:3px;text-align:right}
+.day{align-self:center;font-size:11.5px;font-weight:600;color:var(--mute);background:var(--panel);border:1px solid var(--line);padding:4px 12px;border-radius:99px;margin:10px 0 6px;backdrop-filter:blur(8px)}
+.empty{margin:auto;color:var(--mute);text-align:center;font-size:14px;padding:30px;position:relative}
+.empty .big{display:flex;width:64px;height:64px;margin:0 auto 12px;border-radius:20px;background:var(--grad);color:#fff;align-items:center;justify-content:center;opacity:.9}
+.empty .big svg{width:30px;height:30px}
+#composer{display:flex;gap:8px;padding:10px 14px 14px;align-items:center;position:relative;z-index:1}
+#composer .box{flex:1;display:flex;align-items:center;gap:4px;background:var(--solid);border:1.5px solid var(--line);border-radius:26px;padding:4px 6px 4px 4px;box-shadow:var(--shadow);transition:border-color .15s}
+#composer .box:focus-within{border-color:var(--acc)}
+#composer .box input{border:0;box-shadow:none;background:transparent;padding:10px 6px}
+#send{width:46px;height:46px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;font-size:12px}
+#send svg{width:20px;height:20px;margin-left:-2px}
+.ov{position:fixed;inset:0;background:#05061099;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:8;padding:16px;animation:fade .15s}
+.ov .card{animation:pop .2s ease-out}
+@keyframes fade{from{opacity:0}}
+#view img{max-width:95%;max-height:95%;border-radius:12px}
+.mem{display:flex;align-items:center;gap:10px;padding:6px 0}
+.badge{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:99px;background:color-mix(in srgb,var(--bad) 15%,transparent);color:var(--bad);margin-left:6px}
+.mem .acts{display:flex;gap:6px}.mem .acts button{padding:6px 10px;font-size:12.5px}
+.mem span{flex:1;font-weight:500}
+#back{display:none}
+::-webkit-scrollbar{width:8px}::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
+@media (max-width:700px){#side{width:100%;border:0}#app.chat #side{display:none}#app:not(.chat) #main{display:none}#back{display:inline-flex}.m{max-width:84%}}
+</style>
+</head>
+<body>
+<div id="boot" class="center"><p style="color:var(--mute)">Loading…</p></div>
+
+<div id="auth" class="center hide"><div class="card">
+  <div class="logo" id="logo"></div><h1>Cipher</h1><p>Private, end-to-end encrypted messaging.</p>
+  <div class="tabs"><button id="tLogin" class="on">Log in</button><button id="tSign">Sign up</button></div>
+  <label id="fName" class="hide">Display name<input id="aName" maxlength="30" autocomplete="nickname"></label>
+  <label>Number<input id="aNum" inputmode="numeric" maxlength="12" autocomplete="username"></label>
+  <label>Passphrase<input id="aPass" type="password" autocomplete="current-password"></label>
+  <label id="fPass2" class="hide">Repeat passphrase<input id="aPass2" type="password" autocomplete="new-password"></label>
+  <label class="chk hide" id="fTerms"><input type="checkbox" id="aTerms"><span>I agree to the <a href="#" id="aTermsLink" style="color:var(--acc);font-weight:700">Terms &amp; Privacy</a></span></label>
+  <label class="chk"><input type="checkbox" id="aRem" checked>Keep me logged in on this device</label>
+  <p id="aHint" class="hide">Pick any free 4–12 digit number. Your passphrase (8+ characters) encrypts your key and can't be recovered.</p>
+  <div class="err" id="aErr"></div>
+  <button id="aGo">Log in</button>
+  <button class="ghost" id="aReset">Forgot passphrase?</button>
+</div></div>
+
+<div id="app" class="hide">
+  <aside id="side">
+    <div class="bar"><div class="av" id="myAv"></div><div class="t"><b id="myName"></b><small id="myNum"></small></div>
+      <button class="ghost hide" id="admBtn" title="Admin"></button><button class="ghost" id="setBtn" title="Settings"></button><button class="ghost" id="lockBtn" title="Log out"></button></div>
+    <div class="tabs"><button data-tab="chats" class="on">Chats</button><button data-tab="contacts">Contacts</button></div>
+    <div id="tabChats" style="display:contents">
+      <div class="tool"><input id="newNum" placeholder="Text a number…" inputmode="numeric" maxlength="12"><button id="newGo">Go</button><button id="grpBtn" class="ghost" title="New group"></button></div>
+      <div class="err" id="newErr" style="padding:0 12px"></div>
+      <div class="list" id="list"></div>
+    </div>
+    <div id="tabContacts" class="hide" style="flex:1;display:flex;flex-direction:column;min-height:0">
+      <div class="tool"><input id="cNum" placeholder="Number" inputmode="numeric" maxlength="12" style="width:40%"><input id="cNick" placeholder="Name" maxlength="30"><button id="cAdd">Add</button></div>
+      <div class="err" id="cErr" style="padding:0 12px"></div>
+      <div class="list" id="clist"></div>
+    </div>
+  </aside>
+  <main id="main">
+    <div class="bar"><button class="ghost" id="back"></button><div class="t" id="cHead"><div class="av sm hide" id="cAv"></div><div class="tx"><b id="cName">Pick a chat</b><small id="cSub"></small></div></div><button class="ghost hide" id="infoBtn"></button></div>
+    <div id="msgs"></div>
+    <div id="composer" class="hide">
+      <div class="box"><button class="ghost" id="photoBtn" title="Send photo or video"></button>
+      <input type="file" id="file" accept="image/*,video/*" multiple class="hide">
+      <input id="txt" placeholder="Message" maxlength="4000" autocomplete="off"></div>
+      <button id="send" title="Send"></button>
+    </div>
+  </main>
+</div>
+<div id="modal" class="ov hide"><div class="card"></div></div>
+<div id="view" class="ov hide"><img alt=""></div>
+
+<script>
+/* ---------- Supabase db adapter ---------- */
+const DB=(()=>{
+  if(!window.supabase||!window.CIPHER_CONFIG||/YOUR-/.test(CIPHER_CONFIG.url))return null;
+  const sb=supabase.createClient(CIPHER_CONFIG.url,CIPHER_CONFIG.anonKey);
+  const parentOf=p=>p.slice(0,p.lastIndexOf('/')),idOf=p=>p.slice(p.lastIndexOf('/')+1);
+  const rid=()=>Array.from(crypto.getRandomValues(new Uint8Array(10)),b=>b.toString(16).padStart(2,'0')).join('');
+  const snap=(path,row)=>({id:idOf(path),exists:!!row,data:()=>row?row.data:undefined});
+  const chk=r=>{if(r.error)throw Object.assign(new Error(r.error.message),{code:r.error.code});return r.data};
+  const live=new Set();let n=0;
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)live.forEach(f=>f())});
+  function listen(filter,match,cb){
+    let tm;const deb=()=>{clearTimeout(tm);tm=setTimeout(cb,80)};
+    const ch=sb.channel('c'+(++n))
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'docs',filter},deb)
+      .on('postgres_changes',{event:'UPDATE',schema:'public',table:'docs',filter},deb)
+      .on('postgres_changes',{event:'DELETE',schema:'public',table:'docs'},p=>{if(p.old&&match(p.old))deb()})
+      .subscribe(st=>{if(st==='SUBSCRIBED')deb()});
+    live.add(cb);return()=>{live.delete(cb);clearTimeout(tm);sb.removeChannel(ch)};
+  }
+  function doc(path){return{id:idOf(path),path,
+    async get(){return snap(path,chk(await sb.from('docs').select('data').eq('path',path).maybeSingle()))},
+    async set(data){chk(await sb.from('docs').upsert({path,coll:parentOf(path),data,t:typeof data.t==='number'?data.t:0}))},
+    async update(data){const s=await this.get();if(!s.exists)throw new Error('Not found');await this.set({...s.data(),...data})},
+    async delete(){chk(await sb.from('docs').delete().eq('path',path))},
+    onSnapshot(next,err){const go=()=>this.get().then(next,err||(()=>{}));go();return listen('path=eq.'+path,r=>r.path===path,go)}}}
+  function query(coll,o={}){return{
+    orderBy(f,dir){return query(coll,{...o,dir:dir||'asc'})},
+    limit(k){return query(coll,{...o,k})},
+    async get(){let q=sb.from('docs').select('path,data').eq('coll',coll);if(o.dir)q=q.order('t',{ascending:o.dir==='asc'});if(o.k)q=q.limit(o.k);
+      const docs=chk(await q).map(r=>snap(r.path,r));return{docs,size:docs.length,empty:!docs.length}},
+    onSnapshot(next,err){const go=()=>this.get().then(next,err||(()=>{}));go();return listen('coll=eq.'+coll,r=>r.coll===coll,go)}}}
+  return{sb,doc,collection:c=>({...query(c),path:c,doc:id=>doc(c+'/'+(id||rid())),async add(d){const r=doc(c+'/'+rid());await r.set(d);return r}})};
+})();
+const IC={lock:'<rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',out:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/>',clip:'<path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/>',send:'<path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/>',back:'<path d="m15 18-6-6 6-6"/>',info:'<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',group:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/>',plus:'<path d="M12 5v14M5 12h14"/>',x:'<path d="M18 6 6 18M6 6l12 12"/>',c:'<path d="M16.95 7.05A7 7 0 1 0 16.95 16.95"/>',shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',chat:'<path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.2A8.4 8.4 0 0 1 3.6 11.5 8.5 8.5 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5z"/>'};
+const ic=n=>'<svg class="i" viewBox="0 0 24 24">'+IC[n]+'</svg>';
+const icEl=n=>{const t=document.createElement('template');t.innerHTML=ic(n);return t.content.firstChild};
+const PAL=[['#6246ea','#2f80ed'],['#f2557a','#ff8a5c'],['#12b886','#3bc9db'],['#f59f00','#ff6b6b'],['#7950f2','#e64980'],['#1c7ed6','#22b8cf'],['#e8590c','#fab005'],['#2b8a3e','#94d82d']];
+const avBg=k=>{let h=0;for(const c of String(k))h=(h*31+c.charCodeAt(0))>>>0;const p=PAL[h%PAL.length];return 'background:linear-gradient(135deg,'+p[0]+','+p[1]+')'};
+const avatar=(k,label,group,sm)=>{const a=el('div',{className:'av'+(sm?' sm':''),style:avBg(k)});if(group)a.append(icEl('group'));else a.textContent=(String(label).replace('#','')[0]||'?').toUpperCase();return a};
+const emptyEl=(icon,txt)=>{const e=el('div',{className:'empty'});const b=el('div',{className:'big'});b.innerHTML=ic(icon);e.append(b,txt);return e};
+const welcome=()=>emptyEl('lock','Messages, photos and videos are end-to-end encrypted');
+const avc=k=>PAL[(()=>{let h=0;for(const c of String(k))h=(h*31+c.charCodeAt(0))>>>0;return h%PAL.length})()][0];
+const $=id=>document.getElementById(id);
+const el=(t,p={},...k)=>{const e=document.createElement(t);for(const x in p){if(x==='on')for(const ev in p.on)e.addEventListener(ev,p.on[ev]);else if(x==='style')e.style.cssText=p[x];else e[x]=p[x]}e.append(...k.filter(v=>v!=null));return e};
+const enc=new TextEncoder(),dec=new TextDecoder();
+const b64=buf=>{const b=new Uint8Array(buf);let s='';for(let i=0;i<b.length;i+=0x8000)s+=String.fromCharCode.apply(null,b.subarray(i,i+0x8000));return btoa(s)};
+const unb64=s=>{const a=atob(s),u=new Uint8Array(a.length);for(let i=0;i<a.length;i++)u[i]=a.charCodeAt(i);return u};
+const ECDH={name:'ECDH',namedCurve:'P-256'};
+const NUM=/^\d{4,12}$/;
+let db,uid,me,priv,privJwk,openId=null,unsubMsgs=null,unsubInbox=null,inbox=[];
+const shared={},pubs={},plain={},names={},groups={};
+const P=()=>'data/users/'+uid+'/profile';
+const isG=id=>id.startsWith('g_');
+const clean=v=>String(v).replace(/\s*\/\s*admin\s*$/i,'').trim();
+const tag=(n,v)=>clean(v)+(n==='0001'?'/admin':'');
+const disp=n=>tag(n,(me.contacts&&me.contacts[n])||names[n]||'#'+n);
+
+function show(id){['boot','auth','app'].forEach(x=>$(x).classList.toggle('hide',x!==id))}
+function ls(k,v){try{if(v===undefined)return JSON.parse(localStorage.getItem(k)||'null');localStorage.setItem(k,JSON.stringify(v))}catch(e){return null}}
+function applyTheme(){const t=me&&me.settings&&me.settings.theme;if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;else delete document.documentElement.dataset.theme}
+
+async function passKey(pass,salt){
+  const base=await crypto.subtle.importKey('raw',enc.encode(pass),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:250000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function getPub(num){
+  if(pubs[num])return pubs[num];
+  const s=await db.doc('numbers/'+num).get();
+  if(!s.exists)throw new Error('No one has number '+num);
+  const d=s.data();names[num]=String(d.name||num);return pubs[num]=d.pub;
+}
+async function sharedKey(num){
+  if(shared[num])return shared[num];
+  const theirs=await crypto.subtle.importKey('jwk',await getPub(num),ECDH,false,[]);
+  return shared[num]=await crypto.subtle.deriveKey({name:'ECDH',public:theirs},priv,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function wrapPriv(pass){
+  const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},await passKey(pass,salt),enc.encode(privJwk));
+  return {wk:b64(ct),salt:b64(salt),iv:b64(iv)};
+}
+async function makeKeys(pass){
+  const kp=await crypto.subtle.generateKey(ECDH,true,['deriveKey']);
+  const pub=await crypto.subtle.exportKey('jwk',kp.publicKey);
+  privJwk=JSON.stringify(await crypto.subtle.exportKey('jwk',kp.privateKey));
+  priv=await crypto.subtle.importKey('jwk',JSON.parse(privJwk),ECDH,false,['deriveKey']);
+  return {pub:{kty:pub.kty,crv:pub.crv,x:pub.x,y:pub.y},...await wrapPriv(pass)};
+}
+const cidOf=id=>isG(id)?id:[me.num,id].sort().join('_');
+
+/* ---------- groups ---------- */
+async function wrapFor(num,raw){const iv=crypto.getRandomValues(new Uint8Array(12));const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},await sharedKey(num),raw);return {iv:b64(iv),ct:b64(ct),by:me.num}}
+async function getGroup(id,fresh){
+  if(groups[id]&&!fresh)return groups[id];
+  const s=await db.doc('groups/'+id.slice(2)).get();
+  if(!s.exists)throw new Error('This group was deleted');
+  const d=s.data(),w=d.keys&&d.keys[me.num];
+  if(!w||!(d.members||[]).includes(me.num))throw new Error("You're not in this group");
+  const raw=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(w.iv)},await sharedKey(w.by),unb64(w.ct));
+  const key=await crypto.subtle.importKey('raw',raw,'AES-GCM',false,['encrypt','decrypt']);
+  return groups[id]={name:String(d.name||'Group'),members:d.members,owner:d.owner,keys:d.keys||{},key,raw};
+}
+const keyFor=async id=>isG(id)?(await getGroup(id)).key:sharedKey(id);
+
+/* ---------- auth ---------- */
+const DEF={theme:'auto',enter:true};
+async function saveAcct(){
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},await sharedKey(me.num),enc.encode(JSON.stringify({contacts:me.contacts,settings:me.settings})));
+  await db.doc('accounts/'+me.num).set({ct:b64(ct),iv:b64(iv)});
+}
+async function loadAcct(){
+  const s=await db.doc('accounts/'+me.num).get();if(!s.exists)return;
+  try{const d=s.data(),pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(d.iv)},await sharedKey(me.num),unb64(d.ct));const o=JSON.parse(dec.decode(pt));me.contacts=o.contacts||{};me.settings={...DEF,...o.settings}}catch(e){}
+}
+async function saveProfile(f){
+  Object.assign(me,f);
+  if('name' in f)await db.doc('numbers/'+me.num).update({name:f.name});
+  if('wk' in f)await db.doc('numbers/'+me.num).update({wk:f.wk,salt:f.salt,iv:f.iv});
+  if('contacts' in f||'settings' in f)await saveAcct();
+}
+async function enter(num,d,jwk,remember){
+  if((await db.doc('bans/'+num).get()).exists)throw new Error('This number has been banned');
+  privJwk=jwk;priv=await crypto.subtle.importKey('jwk',JSON.parse(jwk),ECDH,false,['deriveKey']);
+  pubs[num]=d.pub;names[num]=String(d.name||num);
+  me={name:String(d.name||num),num,pub:d.pub,contacts:{},settings:{...DEF}};
+  await loadAcct();
+  if(remember)ls('cipher_session',{num,k:jwk});
+  ls('cipher_last',num);start();
+}
+async function init(){
+  db=DB;
+  if(!db){$('boot').innerHTML='<div class="card"><h1>Setup needed</h1><p>Add your Supabase URL and anon key to config.js.</p></div>';return}
+  uid=ls('cipher_device')||(()=>{const v='d_'+Array.from(crypto.getRandomValues(new Uint8Array(12)),b=>b.toString(16).padStart(2,'0')).join('');ls('cipher_device',v);return v})();
+  const ses=ls('cipher_session');
+  if(ses){try{const s=await db.doc('numbers/'+ses.num).get();if(s.exists&&s.data().pub.x===JSON.parse(ses.k).x)return await enter(ses.num,s.data(),ses.k,true)}catch(e){}ls('cipher_session',null)}
+  $('aNum').value=ls('cipher_last')||'';show('auth');($('aNum').value?$('aPass'):$('aNum')).focus();
+}
+let signup=false;
+function mode(su){signup=su;$('tLogin').classList.toggle('on',!su);$('tSign').classList.toggle('on',su);
+  ['fName','fPass2','aHint','fTerms'].forEach(x=>$(x).classList.toggle('hide',!su));$('aReset').classList.toggle('hide',su);
+  $('aGo').textContent=su?'Create account':'Log in';$('aPass').autocomplete=su?'new-password':'current-password';$('aErr').textContent=''}
+$('aTermsLink').onclick=e=>{e.preventDefault();showTerms()};
+$('tLogin').onclick=()=>mode(false);$('tSign').onclick=()=>mode(true);
+$('auth').onkeydown=e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT')$('aGo').click()};
+$('aGo').onclick=async()=>{
+  const num=$('aNum').value.trim(),p=$('aPass').value,err=$('aErr'),rem=$('aRem').checked;
+  if(!NUM.test(num))return err.textContent='Number must be 4–12 digits';
+  $('aGo').disabled=true;err.textContent='';
+  try{
+    const s=await db.doc('numbers/'+num).get();
+    if(signup){
+      const name=clean($('aName').value);
+      if(!name)throw new Error('Enter a display name');
+      if(p.length<8)throw new Error('Passphrase needs 8+ characters');
+      if(p!==$('aPass2').value)throw new Error("Passphrases don't match");
+      if(!$('aTerms').checked)throw new Error('You need to agree to the Terms & Privacy');
+      if(s.exists||(await db.doc('bans/'+num).get()).exists)throw new Error('That number is taken');
+      const k=await makeKeys(p),d={uid,name,terms:Date.now(),pub:k.pub,wk:k.wk,salt:k.salt,iv:k.iv};
+      await db.doc('numbers/'+num).set(d);
+      await enter(num,d,privJwk,rem);await saveAcct();
+    }else{
+      if(!s.exists)throw new Error('No account with that number');
+      let d=s.data(),w=d,legacy=null;
+      if(!d.wk){const l=await db.doc(P()).get();if(l.exists&&l.data().num===num)w=legacy=l.data();else throw new Error('This account cannot be logged in to')}
+      let pt;try{pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(w.iv)},await passKey(p,unb64(w.salt)),unb64(w.wk))}catch(e){throw new Error('Wrong number or passphrase')}
+      await enter(num,d,dec.decode(pt),rem);
+      if(legacy){await db.doc('numbers/'+num).update({wk:w.wk,salt:w.salt,iv:w.iv});me.contacts=legacy.contacts||{};me.settings={...DEF,...legacy.settings};await saveAcct();applyTheme();renderContacts()}
+    }
+    $('aPass').value=$('aPass2').value='';
+  }catch(e){err.textContent=e.message||e.code||'Failed'}
+  $('aGo').disabled=false;
+};
+$('aReset').onclick=async()=>{
+  const num=$('aNum').value.trim();if(!NUM.test(num))return $('aErr').textContent='Enter your number first';
+  const s=await db.doc('numbers/'+num).get();
+  if(!s.exists)return $('aErr').textContent='No account with that number';
+  if(s.data().uid!==uid)return $('aErr').textContent='Passphrase can only be reset from the device that created this number';
+  const p=prompt('Reset keeps your number, but old messages, contacts and groups become unreadable.\n\nNew passphrase (8+ characters):');
+  if(!p)return;if(p.length<8)return alert('Passphrase needs 8+ characters');
+  try{const k=await makeKeys(p),d={...s.data(),pub:k.pub,wk:k.wk,salt:k.salt,iv:k.iv};await db.doc('numbers/'+num).set(d);await enter(num,d,privJwk,$('aRem').checked);await saveAcct()}
+  catch(e){alert('Reset failed: '+(e.message||e.code))}
+};
+function logout(){
+  $('back').click();priv=privJwk=null;ls('cipher_session',null);
+  for(const o of [shared,plain,groups,pubs,names])for(const k in o)delete o[k];
+  if(unsubInbox)unsubInbox();if(unsubBan){unsubBan();unsubBan=null}inbox=[];me=null;delete document.documentElement.dataset.theme;mode(false);show('auth');
+}
+
+const ADMIN='0001';let unsubBan=null;
+function start(){
+  show('app');applyTheme();
+  $('admBtn').classList.toggle('hide',me.num!==ADMIN);
+  if(unsubBan)unsubBan();
+  unsubBan=db.doc('bans/'+me.num).onSnapshot(b=>{if(b.exists){logout();$('aErr').textContent='This number has been banned'}},()=>{});
+  $('myAv').textContent=me.name[0].toUpperCase();$('myAv').style.cssText=avBg(me.num);$('myName').textContent=tag(me.num,me.name);$('myNum').textContent='#'+me.num;
+  if(unsubInbox)unsubInbox();
+  unsubInbox=db.collection('inbox/'+me.num+'/from').orderBy('t','desc').limit(100).onSnapshot(s=>{inbox=s.docs.map(d=>({id:d.id,...d.data()}));renderList()},e=>console.error(e));
+  renderContacts();
+}
+
+/* ---------- tabs / lists ---------- */
+document.querySelectorAll('#side .tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#side .tabs button').forEach(x=>x.classList.toggle('on',x===b));
+  $('tabChats').classList.toggle('hide',b.dataset.tab!=='chats');$('tabContacts').classList.toggle('hide',b.dataset.tab!=='contacts');
+});
+function when(t){const d=new Date(t),n=new Date();return d.toDateString()===n.toDateString()?d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString()}
+function markSeen(){if(!openId)return;const s=ls('seen_'+me.num)||{};s[openId]=Date.now();ls('seen_'+me.num,s)}
+function titleOf(c){if(isG(c.id))return (groups[c.id]&&groups[c.id].name)||String(c.n||'Group');if(!names[c.id]&&c.n)names[c.id]=String(c.n);return disp(c.id)}
+function renderList(){
+  const L=$('list');L.textContent='';
+  if(!inbox.length){L.append(emptyEl('chat','No chats yet — text a number above'));return}
+  const seen=ls('seen_'+me.num)||{};
+  for(const c of inbox){
+    const n=titleOf(c),g=isG(c.id);
+    L.append(el('div',{className:'item'+(c.id===openId?' on':''),on:{click:()=>openChat(c.id)}},
+      avatar(c.id,n,g),
+      el('div',{className:'t'},el('b',{},n),el('small',{},(g?'Group':'#'+c.id)+' · '+when(c.t))),
+      c.id!==openId&&c.t>(seen[c.id]||0)&&c.by!==me.num?el('div',{className:'dot'}):null));
+  }
+}
+function renderContacts(){
+  const L=$('clist');L.textContent='';
+  const nums=Object.keys(me.contacts).sort((a,b)=>me.contacts[a].localeCompare(me.contacts[b]));
+  if(!nums.length){L.append(emptyEl('group','No contacts yet'));return}
+  for(const n of nums)L.append(el('div',{className:'item',on:{click:()=>openChat(n)}},
+    avatar(n,me.contacts[n]),
+    el('div',{className:'t'},el('b',{},me.contacts[n]),el('small',{},'#'+n)),
+    el('button',{className:'ghost x',title:'Remove',on:{click:e=>{e.stopPropagation();removeContact(n)}}},icEl('x'))));
+}
+async function addContact(num,nick){
+  await getPub(num);
+  const c={...me.contacts,[num]:nick||names[num]};await saveProfile({contacts:c});renderContacts();renderList();
+}
+async function removeContact(num){
+  if(!confirm('Remove '+me.contacts[num]+' from contacts?'))return;
+  const c={...me.contacts};delete c[num];await saveProfile({contacts:c});renderContacts();renderList();
+}
+$('cAdd').onclick=async()=>{
+  const n=$('cNum').value.trim(),nick=$('cNick').value.trim();$('cErr').textContent='';
+  if(!NUM.test(n))return $('cErr').textContent='Enter a 4–12 digit number';
+  try{await addContact(n,nick);$('cNum').value=$('cNick').value=''}catch(e){$('cErr').textContent=e.message||e.code}
+};
+$('newGo').onclick=async()=>{
+  const n=$('newNum').value.trim();$('newErr').textContent='';
+  if(!NUM.test(n))return $('newErr').textContent='Enter a 4–12 digit number';
+  try{await getPub(n);$('newNum').value='';openChat(n)}catch(e){$('newErr').textContent='No one has that number'}
+};
+$('newNum').onkeydown=e=>{if(e.key==='Enter')$('newGo').click()};
+
+/* ---------- modal ---------- */
+function modal(title,...kids){
+  const c=$('modal').firstElementChild;c.textContent='';
+  c.append(el('div',{className:'row'},el('h1',{style:'flex:1'},title),el('button',{className:'ghost',on:{click:closeModal}},icEl('x'))),...kids);
+  $('modal').classList.remove('hide');
+}
+function closeModal(){$('modal').classList.add('hide')}
+$('modal').onclick=e=>{if(e.target.id==='modal')closeModal()};
+const errBox=()=>el('div',{className:'err'});
+const busy=async(btn,err,fn)=>{btn.disabled=true;err.textContent='';try{await fn()}catch(e){err.textContent=e.message||e.code||'Failed'}btn.disabled=false};
+
+/* ---------- new group ---------- */
+$('grpBtn').onclick=()=>{
+  const name=el('input',{placeholder:'Group name',maxLength:40});
+  const checks=Object.keys(me.contacts).map(n=>{const cb=el('input',{type:'checkbox',value:n});return el('label',{className:'chk'},cb,me.contacts[n]+' #'+n)});
+  const extra=el('input',{placeholder:'Other numbers, comma separated',inputMode:'numeric'});
+  const err=errBox(),go=el('button',{},'Create group');
+  go.onclick=()=>busy(go,err,async()=>{
+    const gname=name.value.trim();if(!gname)throw new Error('Enter a group name');
+    const sel=[...$('modal').querySelectorAll('input[type=checkbox]:checked')].map(c=>c.value);
+    const more=extra.value.split(/[\s,]+/).filter(Boolean);
+    for(const n of more)if(!NUM.test(n))throw new Error(n+' is not a valid number');
+    const members=[...new Set([me.num,...sel,...more])];
+    if(members.length<2)throw new Error('Add at least one person');
+    for(const n of members)await getPub(n);
+    const raw=crypto.getRandomValues(new Uint8Array(32)),keys={};
+    for(const n of members)keys[n]=await wrapFor(n,raw);
+    const gid=Array.from(crypto.getRandomValues(new Uint8Array(8)),b=>b.toString(16).padStart(2,'0')).join(''),id='g_'+gid,t=Date.now();
+    await db.doc('groups/'+gid).set({name:gname,members,owner:me.num,keys,t});
+    await Promise.all(members.map(n=>db.doc('inbox/'+n+'/from/'+id).set({t,n:gname,by:me.num})));
+    closeModal();openChat(id);
+  });
+  modal('New group',name,el('h2',{},'Contacts'),...(checks.length?checks:[el('p',{},'No contacts yet — add numbers below')]),extra,err,go);
+  name.focus();
+};
+
+/* ---------- info ---------- */
+$('infoBtn').onclick=$('cHead').onclick=()=>{if(openId)isG(openId)?groupInfo(openId):dmInfo(openId)};
+function dmInfo(num){
+  const nick=el('input',{value:me.contacts[num]||'',placeholder:names[num]||'Name',maxLength:30});
+  const err=errBox(),save=el('button',{},me.contacts[num]?'Save name':'Add to contacts');
+  save.onclick=()=>busy(save,err,async()=>{await addContact(num,nick.value.trim());closeModal();openChat(num)});
+  modal(disp(num),el('p',{},'#'+num+(names[num]?' · calls themselves "'+names[num]+'"':'')),el('p',{},$('cSub').textContent.split('· ')[1]||''),
+    el('label',{},'Contact name',nick),err,save,
+    me.contacts[num]?el('button',{className:'danger',on:{click:async()=>{closeModal();await removeContact(num);openChat(num)}}},'Remove contact'):null);
+}
+async function groupInfo(id){
+  let g;try{g=await getGroup(id,true)}catch(e){return alert(e.message)}
+  const list=g.members.map(n=>el('div',{className:'mem'},avatar(n,disp(n),false,true),
+    el('span',{},(n===me.num?'You':disp(n))+' #'+n+(n===g.owner?' · admin':''))));
+  const add=el('input',{placeholder:'Add a number',inputMode:'numeric',maxLength:12}),err=errBox(),addBtn=el('button',{},'Add');
+  addBtn.onclick=()=>busy(addBtn,err,async()=>{
+    const n=add.value.trim();if(!NUM.test(n))throw new Error('Enter a 4–12 digit number');
+    const cur=await getGroup(id,true);if(cur.members.includes(n))throw new Error('Already in the group');
+    await getPub(n);const keys={...cur.keys,[n]:await wrapFor(n,cur.raw)},t=Date.now();
+    await db.doc('groups/'+id.slice(2)).update({members:[...cur.members,n],keys});
+    await db.doc('inbox/'+n+'/from/'+id).set({t,n:cur.name,by:me.num});
+    groupInfo(id);
+  });
+  const leave=el('button',{className:'danger'},'Leave group');
+  leave.onclick=()=>busy(leave,err,async()=>{
+    if(!confirm('Leave '+g.name+'?'))return;
+    const cur=await getGroup(id,true),keys={...cur.keys};delete keys[me.num];
+    const members=cur.members.filter(n=>n!==me.num);
+    if(members.length)await db.doc('groups/'+id.slice(2)).update({members,keys,owner:cur.owner===me.num?members[0]:cur.owner});
+    else await db.doc('groups/'+id.slice(2)).delete();
+    await db.doc('inbox/'+me.num+'/from/'+id).delete();
+    delete groups[id];closeModal();$('back').click();
+  });
+  modal('👥 '+g.name,el('h2',{},g.members.length+' members'),...list,el('div',{className:'row'},add,addBtn),err,leave);
+}
+
+/* ---------- admin ---------- */
+let adminPw=null;
+async function adminBan(num,ban){
+  if(!adminPw)adminPw=prompt('Admin password:');if(!adminPw)throw new Error('');
+  const r=await DB.sb.rpc('admin_ban',{num,secret:adminPw,ban});if(r.error)throw new Error(r.error.message);
+}
+async function wipe(num){
+  const ib=await db.collection('inbox/'+num+'/from').get();
+  await Promise.all(ib.docs.map(d=>db.doc('inbox/'+num+'/from/'+d.id).delete()));
+  await db.doc('accounts/'+num).delete();await db.doc('numbers/'+num).delete();
+}
+$('admBtn').onclick=async()=>{
+  if(!me||me.num!==ADMIN)return;
+  const q=el('input',{placeholder:'Search name or number'}),box=el('div'),err=errBox();
+  let users=[],bans=new Set();
+  const load=async()=>{
+    box.textContent='Loading…';
+    try{
+      const [u,b]=await Promise.all([db.collection('numbers').limit(1000).get(),db.collection('bans').limit(1000).get()]);
+      users=u.docs.map(d=>({num:d.id,name:String(d.data().name||'')}));bans=new Set(b.docs.map(d=>d.id));
+      for(const n of bans)if(!users.some(x=>x.num===n))users.push({num:n,name:'(deleted)'});
+      users.sort((a,b)=>a.num.localeCompare(b.num));draw();
+    }catch(e){box.textContent='';err.textContent=e.message||e.code}
+  };
+  const act=async(btn,fn)=>{btn.disabled=true;err.textContent='';try{await fn();await load()}catch(e){if(/admin password/i.test(e.message||''))adminPw=null;err.textContent=e.message||e.code||''}btn.disabled=false};
+  const draw=()=>{
+    box.textContent='';const t=q.value.trim().toLowerCase();
+    const list=users.filter(u=>!t||u.num.includes(t)||u.name.toLowerCase().includes(t));
+    if(!list.length)box.append(el('p',{},'No accounts'));
+    for(const u of list){
+      const banned=bans.has(u.num),self=u.num===ADMIN,acts=el('div',{className:'acts'});
+      if(!self){
+        const bb=el('button',{className:'danger'},banned?'Unban':'Ban');
+        bb.onclick=()=>act(bb,async()=>{if(!banned&&!confirm('Ban #'+u.num+'? They will be logged out and blocked.'))throw new Error('');await adminBan(u.num,!banned)});
+        const db2=el('button',{className:'danger'},'Delete');
+        db2.onclick=()=>act(db2,async()=>{if(!confirm('Delete #'+u.num+' ('+u.name+')? Their account is removed and the number is freed'+(banned?' (still banned)':'')+'.'))throw new Error('');await wipe(u.num)});
+        if(u.name!=='(deleted)')acts.append(db2);acts.prepend(bb);
+      }
+      box.append(el('div',{className:'mem'},avatar(u.num,u.name||u.num,false,true),el('span',{},(u.name==='(deleted)'?u.name:tag(u.num,u.name))+' #'+u.num,banned?el('span',{className:'badge'},'BANNED'):null,self?el('span',{className:'badge',style:'background:color-mix(in srgb,var(--acc) 15%,transparent);color:var(--acc)'},'ADMIN'):null),acts));
+    }
+  };
+  q.oninput=draw;
+  modal('Admin',el('p',{},'Ban blocks a number from logging in or being re-registered. Delete removes the account and frees the number.'),q,err,box);
+  load();
+};
+
+
+/* ---------- terms ---------- */
+const TERMS=[
+['Summary','Cipher is a private messaging app. Your messages, photos and videos are end-to-end encrypted, which means only the people in the chat can read them. By creating an account you agree to these terms.'],
+['What is encrypted','Message text, photos, videos, GIFs and links are encrypted on your device before they are sent, using AES-256-GCM with keys agreed through ECDH (P-256). Group chats use a shared group key that is itself encrypted separately for each member. Your contacts list and settings are also encrypted. Nobody running Cipher, including the admin, can read your messages.'],
+['What is not encrypted','To make the app work, some information is stored in readable form: your number, your display name, your public key, which numbers you have chats with, group names and member lists, and the times messages were sent. Do not put private information in your display name or group names.'],
+['Your passphrase','Your passphrase locks your private key. It is never sent anywhere and cannot be recovered. If you forget it, you can reset your keys from the device that created your number, but your old messages will become unreadable. Use a long passphrase that you do not use anywhere else. If someone learns your passphrase, they can log in as you.'],
+['Your device','Messages are decrypted on your device. Encryption cannot protect you if your device is unlocked, shared, or someone takes screenshots. "Keep me logged in" stores your key on that device, so do not use it on shared computers.'],
+['Rules','You must not use Cipher to: harass, bully or threaten anyone; share sexual content involving anyone under 18; share illegal content; impersonate others; spam; or try to break, overload or get around the security of the app. You are responsible for what you send.'],
+['Admin and moderation','Account #0001 is the admin (shown as /admin). The admin can ban numbers and delete accounts that break these rules, without warning. The admin cannot read your encrypted messages, so if someone sends you something harmful, report it by showing it to the admin or a trusted adult.'],
+['Staying safe','Only chat with people you know. Never share your passphrase. If anything makes you feel unsafe, stop replying, tell a trusted adult, and in an emergency contact the police.'],
+['No guarantees','Cipher is an independent project provided "as is". It may have bugs, go offline, or lose data, and there is no guarantee it will keep running. Do not rely on it for anything important or as your only copy of anything.'],
+['Deleting your account','You can delete your account at any time in Settings. This removes your profile and frees your number. Messages you already sent may remain in other people\'s chats in encrypted form.'],
+['Changes','These terms may be updated. Continuing to use Cipher after a change means you accept the new terms.']];
+function showTerms(){
+  modal('Terms & Privacy',el('p',{},'Last updated: October 2026'),...TERMS.flatMap(([h,t])=>[el('h2',{},h),el('p',{style:'color:var(--ink);font-size:14px;line-height:1.55'},t)]),
+    el('button',{on:{click:closeModal}},'Got it'));
+}
+
+/* ---------- settings ---------- */
+$('setBtn').onclick=()=>{
+  const name=el('input',{value:me.name,maxLength:30}),nErr=errBox(),nBtn=el('button',{},'Save name');
+  nBtn.onclick=()=>busy(nBtn,nErr,async()=>{
+    const v=clean(name.value);if(!v)throw new Error('Enter a name');
+    await saveProfile({name:v});names[me.num]=v;
+    $('myName').textContent=tag(me.num,v);$('myAv').textContent=v[0].toUpperCase();nErr.textContent='Saved ✓';
+  });
+  const theme=el('select',{},...['auto','light','dark'].map(t=>el('option',{value:t,selected:me.settings.theme===t},t==='auto'?'Match device':t[0].toUpperCase()+t.slice(1))));
+  theme.onchange=()=>{saveProfile({settings:{...me.settings,theme:theme.value}});applyTheme()};
+  const ent=el('input',{type:'checkbox',checked:me.settings.enter!==false});
+  ent.onchange=()=>saveProfile({settings:{...me.settings,enter:ent.checked}});
+  const p1=el('input',{type:'password',placeholder:'New passphrase (8+)',autocomplete:'new-password'}),p2=el('input',{type:'password',placeholder:'Repeat',autocomplete:'new-password'});
+  const pErr=errBox(),pBtn=el('button',{},'Change passphrase');
+  pBtn.onclick=()=>busy(pBtn,pErr,async()=>{
+    if(p1.value.length<8)throw new Error('Passphrase needs 8+ characters');if(p1.value!==p2.value)throw new Error("Passphrases don't match");
+    await saveProfile(await wrapPriv(p1.value));p1.value=p2.value='';pErr.textContent='Changed ✓';
+  });
+  const copy=el('button',{className:'ghost',on:{click:async()=>{try{await navigator.clipboard.writeText(me.num);copy.textContent='Copied ✓'}catch(e){copy.textContent='#'+me.num}}}},'Copy my number #'+me.num);
+  const del=el('button',{className:'danger',on:{click:async()=>{
+    if(prompt('This deletes your account and frees your number. Type DELETE to confirm.')!=='DELETE')return;
+    try{await db.doc('accounts/'+me.num).delete();await db.doc('numbers/'+me.num).delete();closeModal();logout()}catch(e){alert('Failed: '+(e.message||e.code))}
+  }}},'Delete account');
+  modal('⚙️ Settings',el('h2',{},'Profile'),el('label',{},'Display name',name),nErr,nBtn,copy,
+    el('h2',{},'Appearance'),el('label',{},'Theme',theme),
+    el('h2',{},'Chat'),el('label',{className:'chk'},ent,'Enter key sends message'),
+    el('h2',{},'Security'),p1,p2,pErr,pBtn,el('button',{className:'ghost',style:'color:var(--acc)',on:{click:showTerms}},'Terms & Privacy'),del);
+};
+
+/* ---------- chat ---------- */
+async function openChat(id){
+  openId=id;$('app').classList.add('chat');$('composer').classList.remove('hide');$('infoBtn').classList.remove('hide');
+  const g=isG(id);
+  $('cName').textContent=g?'Group':disp(id);const ca=$('cAv');ca.replaceWith(Object.assign(avatar(id,disp(id),g,true),{id:'cAv'}));$('cSub').textContent=g?'':'#'+id;
+  const M=$('msgs');nodesFor=null;M.innerHTML='<div class="empty">Loading…</div>';renderList();
+  if(unsubMsgs){unsubMsgs();unsubMsgs=null}
+  try{
+    if(g){const gr=await getGroup(id,true);if(openId!==id)return;$('cName').textContent=gr.name;$('cSub').textContent=gr.members.length+' members · encrypted · tap for info';for(const n of gr.members)getPub(n).catch(()=>{})}
+    else{await sharedKey(id);if(openId!==id)return;$('cName').textContent=disp(id);safety(id)}
+  }catch(e){M.textContent='';M.append(el('div',{className:'empty'},e.message||'Unavailable'));$('composer').classList.add('hide');return}
+  unsubMsgs=db.collection('chats/'+cidOf(id)+'/msgs').orderBy('t','desc').limit(150).onSnapshot(s=>{if(openId===id)renderMsgs(s.docs.slice().reverse(),id)},e=>console.error(e));
+  markSeen();renderList();$('txt').focus();
+}
+async function safety(num){
+  const a=[pubs[me.num].x+pubs[me.num].y,pubs[num].x+pubs[num].y].sort().join('');
+  const h=[...new Uint8Array(await crypto.subtle.digest('SHA-256',enc.encode(a)))].slice(0,6).map(b=>b.toString(16).padStart(2,'0')).join('');
+  if(openId===num)$('cSub').textContent='#'+num+' · safety code '+h.match(/..../g).join('-');
+}
+async function decryptMsg(doc,id){
+  if(plain[doc.id])return plain[doc.id];
+  const d=doc.data();
+  try{
+    const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(d.iv)},await keyFor(id),unb64(d.ct));
+    return plain[doc.id]={...JSON.parse(dec.decode(pt)),f:String(d.f),t:d.t};
+  }catch(e){return {k:'x',f:String(d.f),t:d.t}}
+}
+let nodes={},nodesFor=null,lastDay='';
+const dayLbl=t=>{const d=new Date(t),n=new Date(),y=new Date(n-864e5);return d.toDateString()===n.toDateString()?'Today':d.toDateString()===y.toDateString()?'Yesterday':d.toLocaleDateString([],{weekday:'short',day:'numeric',month:'short'})};
+const URLRE=/((?:https?:\/\/|www\.)[^\s<]+[^\s<.,;:!?)\]'"])/gi;
+function linkify(b,txt){let i=0;for(const mt of txt.matchAll(URLRE)){b.append(txt.slice(i,mt.index));const h=/^www\./i.test(mt[0])?'https://'+mt[0]:mt[0];b.append(el('a',{href:h,target:'_blank',rel:'noopener noreferrer'},mt[0]));i=mt.index+mt[0].length}b.append(txt.slice(i))}
+const mb=n=>(n/1048576).toFixed(n<1048576?2:1)+' MB';
+async function loadBlob(m,id){
+  if(m.url)return m.url;
+  const cid=cidOf(id),parts=await Promise.all(Array.from({length:m.n},(_,i)=>db.doc('chats/'+cid+'/parts/'+m.b+'_'+i).get()));
+  if(parts.some(p=>!p.exists))throw new Error('missing');
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(m.iv)},await keyFor(id),unb64(parts.map(p=>p.data().d).join('')));
+  return m.url=URL.createObjectURL(new Blob([pt],{type:m.m}));
+}
+function mediaNode(m,id){
+  const M=$('msgs'),vid=String(m.m).startsWith('video/');
+  const fail=w=>w.replaceWith(el('span',{},"⚠️ Couldn't load"));
+  if(!vid){const w=el('span',{},'Loading image…');loadBlob(m,id).then(u=>w.replaceWith(el('img',{src:u,on:{click:()=>zoom(u),load:()=>{M.scrollTop=M.scrollHeight}}}))).catch(()=>fail(w));return w}
+  const btn=el('button',{className:'media'},'▶ Video · '+mb(m.s));
+  btn.onclick=async()=>{btn.disabled=true;btn.textContent='Decrypting…';
+    try{const u=await loadBlob(m,id);btn.replaceWith(el('video',{src:u,controls:true,autoplay:true,playsInline:true}))}catch(e){fail(btn)}};
+  return btn;
+}
+function zoom(u){$('view').firstElementChild.src=u;$('view').classList.remove('hide')}
+async function renderMsgs(docs,id){
+  const out=await Promise.all(docs.map(d=>decryptMsg(d,id)));
+  if(openId!==id)return;
+  const M=$('msgs'),g=isG(id);
+  if(nodesFor!==id){nodes={};nodesFor=id;M.textContent='';lastDay=''}
+  M.querySelector('.empty')?.remove();
+  if(!out.length){M.append(emptyEl('send',"Say hi — it's end-to-end encrypted"));return}
+  const keep=new Set(docs.map(d=>d.id));
+  for(const k in nodes)if(!keep.has(k)){nodes[k].remove();delete nodes[k]}
+  const near=M.scrollHeight-M.scrollTop-M.clientHeight<150;let added=false;
+  out.forEach((m,i)=>{
+    const did=docs[i].id;if(nodes[did])return;
+    const mine=m.f===me.num,b=el('div',{className:'m'+(mine?' me':'')});
+    const dl=dayLbl(m.t);if(dl!==lastDay){lastDay=dl;M.append(el('div',{className:'day'},dl))}
+    if(g&&!mine)b.append(el('span',{className:'who',style:'color:'+avc(m.f)},disp(m.f)));
+    if(m.k==='i')b.append(el('img',{src:m.v,on:{click:()=>zoom(m.v),load:()=>{if(near)M.scrollTop=M.scrollHeight}}}));
+    else if(m.k==='f')b.append(mediaNode(m,id));
+    else if(m.k==='t')linkify(b,m.v);
+    else{b.append("🔒 Can't decrypt (keys were reset)");b.style.opacity=.6}
+    b.append(el('time',{},when(m.t)));M.append(b);nodes[did]=b;added=true;
+  });
+  if(added&&(near||docs.length&&out[out.length-1].f===me.num))M.scrollTop=M.scrollHeight;
+  markSeen();
+}
+let sending=false;
+async function send(payload,id=openId){
+  if(!id||(sending&&!payload.k.startsWith("f")))return;sending=true;$('send').disabled=true;
+  try{
+    const iv=crypto.getRandomValues(new Uint8Array(12));
+    const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},await keyFor(id),enc.encode(JSON.stringify(payload)));
+    const t=Date.now();
+    await db.collection('chats/'+cidOf(id)+'/msgs').add({f:me.num,ct:b64(ct),iv:b64(iv),t});
+    if(isG(id)){const g=groups[id];await Promise.all(g.members.map(n=>db.doc('inbox/'+n+'/from/'+id).set({t,n:g.name,by:me.num})))}
+    else{
+      await db.doc('inbox/'+id+'/from/'+me.num).set({t,n:me.name,by:me.num});
+      if(id!==me.num)await db.doc('inbox/'+me.num+'/from/'+id).set({t,n:names[id]||id,by:me.num});
+    }
+  }catch(e){alert('Send failed: '+(e.message||e.code))}
+  sending=false;$('send').disabled=false;
+}
+$('send').onclick=()=>{const v=$('txt').value.trim();if(!v)return;$('txt').value='';send({k:'t',v})};
+$('txt').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey&&me.settings.enter!==false){e.preventDefault();$('send').click()}};
+$('photoBtn').onclick=()=>$('file').click();
+const MAXF=8*1048576,CH=180000;
+$('file').onchange=async e=>{
+  const files=[...e.target.files];e.target.value='';const id=openId;if(!id||sending)return;
+  for(const f of files){
+    try{
+      if(f.type.startsWith('video/')||f.type==='image/gif'){
+        if(f.size>MAXF){alert(f.name+' is '+mb(f.size)+' — max is 8 MB');continue}
+        await sendFile(f,id);
+      }else if(f.type.startsWith('image/'))await send({k:'i',v:await shrink(f)},id);
+    }catch(err){alert("Couldn't send "+f.name)}
+  }
+};
+async function sendFile(f,id){
+  sending=true;const S=$('send');S.disabled=true;
+  try{
+    const iv=crypto.getRandomValues(new Uint8Array(12));
+    S.textContent='…';
+    const ct=b64(await crypto.subtle.encrypt({name:'AES-GCM',iv},await keyFor(id),await f.arrayBuffer()));
+    const bid=Array.from(crypto.getRandomValues(new Uint8Array(8)),x=>x.toString(16).padStart(2,'0')).join(''),n=Math.ceil(ct.length/CH),cid=cidOf(id);
+    for(let i=0;i<n;i+=4){
+      S.textContent=Math.round(i/n*100)+'%';
+      await Promise.all(Array.from({length:Math.min(4,n-i)},(_,j)=>db.doc('chats/'+cid+'/parts/'+bid+'_'+(i+j)).set({d:ct.slice((i+j)*CH,(i+j+1)*CH)})));
+    }
+        await send({k:'f',b:bid,n,iv:b64(iv),m:f.type,s:f.size},id);
+  }finally{sending=false;S.disabled=false;S.innerHTML=ic('send')}
+}
+async function shrink(file){
+  const img=await createImageBitmap(file);let max=1280,q=.82;
+  for(;;){
+    const s=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement('canvas');
+    c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    const d=c.toDataURL('image/jpeg',q);
+    if(d.length<140000||max<240)return d;
+    if(q>.55)q-=.12;else max=Math.round(max*.75);
+  }
+}
+$('view').onclick=()=>$('view').classList.add('hide');
+$('back').onclick=()=>{openId=null;nodesFor=null;$('cAv').classList.add('hide');if(unsubMsgs){unsubMsgs();unsubMsgs=null}$('app').classList.remove('chat');$('composer').classList.add('hide');$('infoBtn').classList.add('hide');$('cName').textContent='Pick a chat';$('cSub').textContent='';$('msgs').textContent='';$('msgs').append(welcome());renderList()};
+$('lockBtn').onclick=()=>{if(confirm('Log out?'))logout()};
+
+$('logo').innerHTML='<svg viewBox="60 60 392 392"><path d="M340.85 171.15A120 120 0 1 0 340.85 340.85" fill="none" stroke="#fff" stroke-width="48" stroke-linecap="round"/><path d="M231 256v-24a25 25 0 0 1 50 0v24" fill="none" stroke="#fff" stroke-width="16" stroke-linecap="round"/><rect x="214" y="252" width="84" height="66" rx="14" fill="#fff"/></svg>';for(const[k,v]of[['admBtn','shield'],['setBtn','gear'],['lockBtn','out'],['grpBtn','group'],['back','back'],['infoBtn','info'],['photoBtn','clip'],['send','send']])$(k).innerHTML=ic(v);$('msgs').append(welcome());
+init();
+if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+</script>
+</body>
+</html>
