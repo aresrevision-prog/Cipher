@@ -865,9 +865,10 @@ function mediaNode(m,id){
   card.onclick=async()=>{card.disabled=true;try{const u=await loadBlob(m,id),a=el('a',{href:u,download:nm});document.body.append(a);a.click();a.remove()}catch(e){alert("Couldn't load that file")}card.disabled=false};
   return card;
 }
-let viewSrc=null;function zoom(u){viewSrc=u;$('view').querySelector('img').src=u;$('view').classList.remove('hide')}
-$('viewCut').innerHTML=ic('scissors')+'<span>Make sticker</span>';
-$('viewCut').onclick=e=>{e.stopPropagation();$('view').classList.add('hide');if(viewSrc)openCutout(viewSrc)};
+let viewSrc=null,viewSticker=false;
+function saveSticker(data){const arr=customStickers();if(arr.includes(data))return toast('Already in your stickers');arr.unshift(data);while(arr.length>40)arr.pop();setCustomStickers(arr);buildStickers();toast('Saved to your stickers \u2705')}
+function zoom(u,isSticker){viewSrc=u;viewSticker=!!isSticker;$('view').querySelector('img').src=u;$('viewCut').innerHTML=ic('scissors')+'<span>'+(isSticker?'Save sticker':'Make sticker')+'</span>';$('view').classList.remove('hide')}
+$('viewCut').onclick=e=>{e.stopPropagation();$('view').classList.add('hide');if(!viewSrc)return;if(viewSticker)saveSticker(viewSrc);else openCutout(viewSrc)};
 async function renderMsgs(docs,id){
   const out=await Promise.all(docs.map(d=>decryptMsg(d,id)));
   if(openId!==id)return;
@@ -887,7 +888,7 @@ async function renderMsgs(docs,id){
     else if(m.k==='i'){const _src=m.v;b.append(el('img',{src:_src,on:{click:()=>zoom(_src),contextmenu:e=>{e.preventDefault();e.stopPropagation();stickerMenu(e.clientX,e.clientY,_src)},load:()=>{if(near)M.scrollTop=M.scrollHeight}}}))}
     else if(m.k==='f')b.append(mediaNode(m,id));
     else if(m.k==='c'){b.classList.add('callm');b.append(callNode(m,id))}
-    else if(m.k==='s'){b.classList.add('sticker');if(m.img)b.append(el('img',{className:'stick-img',src:m.img,on:{click:()=>zoom(m.img)}}));else b.append(el('div',{className:'stick-em'},m.v))}
+    else if(m.k==='s'){b.classList.add('sticker');if(m.img)b.append(el('img',{className:'stick-img',src:m.img,on:{click:()=>zoom(m.img,true)}}));else b.append(el('div',{className:'stick-em'},m.v))}
     else if(m.k==='t'){linkify(b,m.v);
       if(isGameCode(m.v)){b.classList.add('gamemsg');const code=m.v;
         const pv=el('div',{className:'gcode'},code.slice(0,500));
