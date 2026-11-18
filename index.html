@@ -94,7 +94,7 @@ label.chk{flex-direction:row;align-items:center;gap:10px;font-size:14px;color:va
 .mdel svg{width:16px;height:16px}.m.me .mdel{left:-40px}.m:not(.me) .mdel{right:-40px}
 .m.sel .mdel{display:flex}@media (hover:hover){.m:hover .mdel{display:flex}}
 .mdel.mrep{color:#f59f00}
-.hid{font-style:italic;opacity:.6;font-size:13px}
+.m.undec{font-size:12.5px;font-style:italic}.hid{font-style:italic;opacity:.6;font-size:13px}
 .voice{display:flex;align-items:center;gap:10px;min-width:220px;padding:2px 0}
 .vbtn{width:40px;height:40px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;background:#ffffff33;color:inherit;box-shadow:none;flex:none}
 .m:not(.me) .vbtn{background:var(--grad);color:#fff}.vbtn svg{width:18px;height:18px}
@@ -793,13 +793,17 @@ async function safety(num){
   const h=[...new Uint8Array(await crypto.subtle.digest('SHA-256',enc.encode(a)))].slice(0,6).map(b=>b.toString(16).padStart(2,'0')).join('');
   if(openId===num)$('cSub').textContent='#'+num+' · safety code '+h.match(/..../g).join('-');
 }
+const pubRefresh={};
+function refreshPeer(id){if(!pubRefresh[id])pubRefresh[id]=(async()=>{delete shared[id];delete pubs[id];await getPub(id)})();return pubRefresh[id]}
 async function decryptMsg(doc,id){
   if(plain[doc.id])return plain[doc.id];
   const d=doc.data();
   try{
     const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(d.iv)},await keyFor(id),unb64(d.ct));
     return plain[doc.id]={...JSON.parse(dec.decode(pt)),f:String(d.f),t:d.t};
-  }catch(e){return {k:'x',f:String(d.f),t:d.t}}
+  }catch(e){
+    if(!isG(id)){try{await refreshPeer(id);const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(d.iv)},await sharedKey(id),unb64(d.ct));return plain[doc.id]={...JSON.parse(dec.decode(pt)),f:String(d.f),t:d.t}}catch(e2){}}
+    return {k:'x',f:String(d.f),t:d.t}}
 }
 let nodes={},nodesFor=null,lastDay='';
 const dayLbl=t=>{const d=new Date(t),n=new Date(),y=new Date(n-864e5);return d.toDateString()===n.toDateString()?'Today':d.toDateString()===y.toDateString()?'Yesterday':d.toLocaleDateString([],{weekday:'short',day:'numeric',month:'short'})};
@@ -897,7 +901,7 @@ async function renderMsgs(docs,id){
         b.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();gameMenu(e.clientX,e.clientY,code)});
       }
     }
-    else{b.append("🔒 Can't decrypt (keys were reset)");b.style.opacity=.6}
+    else{b.classList.add('undec');b.append("🔒 Older message \u2014 can't be read after a key reset");b.style.opacity=.55}
     if(mine||me.num===ADMIN){const del=el('button',{className:'mdel',title:'Delete for everyone'});del.innerHTML=ic('trash');del.onclick=e=>{e.stopPropagation();delMsg(did,m,id)};b.append(del)}
     else if(!isBlocked(m.f)){const rp=el('button',{className:'mdel mrep',title:'Report message'});rp.innerHTML=ic('flag');rp.onclick=e=>{e.stopPropagation();reportMsg(did,m,id)};b.append(rp)}
     b.addEventListener('click',e=>{if(e.target.closest('a,button,img,video,audio'))return;M.querySelectorAll('.m.sel').forEach(x=>{if(x!==b)x.classList.remove('sel')});b.classList.toggle('sel')});
