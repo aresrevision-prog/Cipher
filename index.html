@@ -169,7 +169,7 @@ label.chk{flex-direction:row;align-items:center;gap:10px;font-size:14px;color:va
 .ov{position:fixed;inset:0;background:#05061099;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:8;padding:16px;animation:fade .15s}
 .ov .card{animation:pop .2s ease-out}
 @keyframes fade{from{opacity:0}}
-#view img{max-width:95%;max-height:85%;border-radius:12px}#view .mkbtn{position:absolute;left:50%;bottom:calc(26px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:2;background:var(--acc);color:#fff;font-weight:700;padding:12px 20px;border-radius:14px;box-shadow:0 10px 26px rgba(0,0,0,.45);display:inline-flex;align-items:center;gap:8px}#view .mkbtn svg{width:18px;height:18px;stroke:#fff;fill:none}
+#view img{max-width:95%;max-height:85%;border-radius:12px}#view .mkbtn{position:absolute;left:50%;bottom:calc(26px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:2;background:var(--acc);color:#fff;font-weight:700;padding:12px 20px;border-radius:14px;box-shadow:0 10px 26px rgba(0,0,0,.45);display:inline-flex;align-items:center;gap:8px}#view .mkbtn svg{width:18px;height:18px;stroke:#fff;fill:none}#view .viewbar{position:absolute;left:0;right:0;bottom:calc(26px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;justify-content:center;z-index:2;flex-wrap:wrap;padding:0 12px}#view .viewbar .mkbtn{position:static;left:auto;bottom:auto;transform:none}#view .mkbtn.del{background:var(--bad)}
 .mem{display:flex;align-items:center;gap:10px;padding:6px 0}
 .badge{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:99px;background:color-mix(in srgb,var(--bad) 15%,transparent);color:var(--bad);margin-left:6px}
 .mem .acts{display:flex;gap:6px}.mem .acts button{padding:6px 10px;font-size:12.5px}
@@ -237,7 +237,7 @@ label.chk{flex-direction:row;align-items:center;gap:10px;font-size:14px;color:va
   <div class="cbtns" id="cIn"><button class="cb dec" id="cDecline" title="Decline"></button><button class="cb acc" id="cAccept" title="Accept"></button></div>
   <div class="cbtns hide" id="cAct"><button class="cb" id="cMute" title="Mute"></button><button class="cb" id="cCam" title="Camera"></button><button class="cb" id="cShare" title="Share screen"></button><button class="cb dec" id="cHang" title="Hang up"></button></div>
 </div>
-<div id="view" class="ov hide"><img alt=""><button id="viewCut" class="mkbtn"></button></div>
+<div id="view" class="ov hide"><img alt=""><div class="viewbar"><button id="viewCut" class="mkbtn"></button><button id="viewDel" class="mkbtn del hide"></button></div></div>
 <div id="cut" class="hide"><div class="cutbar"><b id="cutHint">Drag a box over what you want</b><button id="cutX" class="ghost">Cancel</button></div><div class="cutstage"><canvas id="cutCv"></canvas></div><div id="cutModes" class="cutmodes"><button type="button" data-m="box" class="on">Box</button><button type="button" data-m="circle">Circle</button><button type="button" data-m="lasso">Freehand</button></div><div class="cutact"><button id="cutClear" class="ghost">Reset</button><button id="cutSave">Cut out &amp; send</button></div></div>
 <div id="game" class="hide"><div class="gbar"><b id="gTitle">Game</b><small>🔒 sandboxed</small><button id="gClose">Close</button></div><iframe id="gFrame" sandbox="allow-scripts allow-pointer-lock allow-modals" allow="autoplay; gamepad; fullscreen" referrerpolicy="no-referrer"></iframe></div>
 
@@ -869,10 +869,11 @@ function mediaNode(m,id){
   card.onclick=async()=>{card.disabled=true;try{const u=await loadBlob(m,id),a=el('a',{href:u,download:nm});document.body.append(a);a.click();a.remove()}catch(e){alert("Couldn't load that file")}card.disabled=false};
   return card;
 }
-let viewSrc=null,viewSticker=false;
+let viewSrc=null,viewSticker=false,viewDelFn=null;
 function saveSticker(data){const arr=customStickers();if(arr.includes(data))return toast('Already in your stickers');arr.unshift(data);while(arr.length>40)arr.pop();setCustomStickers(arr);buildStickers();toast('Saved to your stickers \u2705')}
-function zoom(u,isSticker){viewSrc=u;viewSticker=!!isSticker;$('view').querySelector('img').src=u;$('viewCut').innerHTML=ic('scissors')+'<span>'+(isSticker?'Save sticker':'Make sticker')+'</span>';$('view').classList.remove('hide')}
+function zoom(u,isSticker,delFn){viewSrc=u;viewSticker=!!isSticker;viewDelFn=delFn||null;$('view').querySelector('img').src=u;$('viewCut').innerHTML=ic('scissors')+'<span>'+(isSticker?'Save sticker':'Make sticker')+'</span>';const vd=$('viewDel');vd.classList.toggle('hide',!viewDelFn);vd.innerHTML=ic('trash')+'<span>Delete</span>';$('view').classList.remove('hide')}
 $('viewCut').onclick=e=>{e.stopPropagation();$('view').classList.add('hide');if(!viewSrc)return;if(viewSticker)saveSticker(viewSrc);else openCutout(viewSrc)};
+$('viewDel').onclick=e=>{e.stopPropagation();const f=viewDelFn;$('view').classList.add('hide');if(f)f()};
 async function renderMsgs(docs,id){
   const out=await Promise.all(docs.map(d=>decryptMsg(d,id)));
   if(openId!==id)return;
@@ -889,10 +890,10 @@ async function renderMsgs(docs,id){
     const dl=dayLbl(m.t);if(dl!==lastDay){lastDay=dl;M.append(el('div',{className:'day'},dl))}
     if(g&&!mine)b.append(el('span',{className:'who',style:'color:'+avc(m.f)},disp(m.f)));
     if(!mine&&isBlocked(m.f))b.append(el('span',{className:'hid'},'Message from a blocked number'));
-    else if(m.k==='i'){const _src=m.v;b.append(el('img',{src:_src,on:{click:()=>zoom(_src),contextmenu:e=>{e.preventDefault();e.stopPropagation();stickerMenu(e.clientX,e.clientY,_src)},load:()=>{if(near)M.scrollTop=M.scrollHeight}}}))}
+    else if(m.k==='i'){const _src=m.v,_del=(mine||me.num===ADMIN)?()=>delMsg(did,m,id):null;b.append(el('img',{src:_src,on:{click:()=>zoom(_src,false,_del),contextmenu:e=>{e.preventDefault();e.stopPropagation();stickerMenu(e.clientX,e.clientY,_src)},load:()=>{if(near)M.scrollTop=M.scrollHeight}}}))}
     else if(m.k==='f')b.append(mediaNode(m,id));
     else if(m.k==='c'){b.classList.add('callm');b.append(callNode(m,id))}
-    else if(m.k==='s'){b.classList.add('sticker');if(m.img)b.append(el('img',{className:'stick-img',src:m.img,on:{click:()=>zoom(m.img,true)}}));else b.append(el('div',{className:'stick-em'},m.v))}
+    else if(m.k==='s'){b.classList.add('sticker');const _del=(mine||me.num===ADMIN)?()=>delMsg(did,m,id):null;if(m.img)b.append(el('img',{className:'stick-img',src:m.img,on:{click:()=>zoom(m.img,true,_del)}}));else b.append(el('div',{className:'stick-em'},m.v))}
     else if(m.k==='t'){linkify(b,m.v);
       if(isGameCode(m.v)){b.classList.add('gamemsg');const code=m.v;
         const pv=el('div',{className:'gcode'},code.slice(0,500));
