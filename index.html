@@ -435,7 +435,7 @@ function logout(){
   if(call)endCall('ended');if(unsubRing){unsubRing();unsubRing=null}
   $('back').click();priv=privJwk=null;ls('cipher_session',null);admStop();ls('cipher_admin',null);
   for(const o of [shared,plain,groups,pubs,names])for(const k in o)delete o[k];
-  if(unsubInbox)unsubInbox();if(unsubBan){unsubBan();unsubBan=null}inbox=[];me=null;setBadge(0);delete document.documentElement.dataset.theme;mode(false);show('auth');
+  if(unsubInbox)unsubInbox();if(unsubBan){unsubBan();unsubBan=null}if(unsubGames){unsubGames();unsubGames=null}sharedGames=[];inbox=[];me=null;setBadge(0);delete document.documentElement.dataset.theme;mode(false);show('auth');
 }
 
 const ADMIN='0001';let unsubBan=null;
@@ -445,7 +445,7 @@ function start(){
   if(unsubBan)unsubBan();
   if(unsubRing)unsubRing();seenRing.clear();unsubRing=db.collection('ring/'+me.num+'/in').orderBy('t','desc').limit(5).onSnapshot(onRing,()=>{});
   unsubBan=db.doc('bans/'+me.num).onSnapshot(b=>{const bm=banMsg(b);if(bm){logout();$('aErr').textContent=bm}},()=>{});
-  admStart();
+  admStart();startGames();
   $('myAv').textContent=me.name[0].toUpperCase();$('myAv').style.cssText=avBg(me.num);$('myName').textContent=tag(me.num,me.name);$('myNum').textContent='#'+me.num;
   if(unsubInbox)unsubInbox();
   inboxT=null;
@@ -1306,20 +1306,20 @@ function gameMenu(x,y,code){closeCtx();const m=el('div',{className:'ctxm'});cons
 function playGame(code){const fr=$('gFrame');fr.srcdoc=code;$('gTitle').textContent='Game';$('game').classList.remove('hide')}
 $('gClose').onclick=()=>{$('game').classList.add('hide');$('gFrame').srcdoc='about:blank';$('gFrame').removeAttribute('srcdoc')};
 const DEF_GAMES=[{name:'MagicWinter Studio',url:'https://MagicWinter.vercel.app',emoji:'🏠'},{name:'Bed Wars',url:'https://bedwars-sky.vercel.app',emoji:'🛏️'},{name:'Tycoon World 3D',url:'https://tycoon-mws.vercel.app',emoji:'🎲'},{name:'Frontlines',url:'https://frontlineswarfare.vercel.app',emoji:'⚔️'},{name:'Ares Revision',url:'https://ares-revision.vercel.app',emoji:'📚'}];
-function customGames(){try{return JSON.parse(localStorage.getItem('games_'+me.num)||'[]')}catch(e){return []}}
-function setCustomGames(a){try{localStorage.setItem('games_'+me.num,JSON.stringify(a))}catch(e){}}
-function allGames(){return DEF_GAMES.concat(customGames())}
-function openGames(){renderGames();$('games').classList.remove('hide')}
-function renderGames(){const G=$('gGrid');G.textContent='';allGames().forEach((g,idx)=>{const isCustom=idx>=DEF_GAMES.length;
-  const c=el('div',{className:'gcard',on:{click:()=>launchGame(g)}});
-  c.append(el('div',{className:'gico'},g.emoji||(g.name[0]||'G').toUpperCase()),el('b',{},g.name),el('div',{className:'play'},'Play ▶'));
-  if(isCustom){const ci=idx-DEF_GAMES.length;c.append(el('button',{className:'rm',title:'Remove',textContent:'×',on:{click:e=>{e.stopPropagation();const a=customGames();a.splice(ci,1);setCustomGames(a);renderGames()}}}))}
-  G.append(c)})}
+let sharedGames=[],unsubGames=null;
+function startGames(){if(unsubGames)unsubGames();unsubGames=db.collection('games').orderBy('t','asc').limit(100).onSnapshot(sn=>{sharedGames=sn.docs.map(d=>({id:d.id,...d.data()}));if(!$('games').classList.contains('hide'))renderGames()},()=>{})}
+function openGames(){renderGames();if(!unsubGames)startGames();$('games').classList.remove('hide')}
+function renderGames(){const G=$('gGrid');G.textContent='';
+  const list=DEF_GAMES.map(g=>({...g,def:true})).concat(sharedGames.map(g=>({...g,def:false})));
+  list.forEach(g=>{const c=el('div',{className:'gcard',on:{click:()=>launchGame(g)}});
+    c.append(el('div',{className:'gico'},g.emoji||(g.name[0]||'G').toUpperCase()),el('b',{},g.name),el('div',{className:'play'},'Play ▶'));
+    if(!g.def&&(g.by===me.num||me.num===ADMIN))c.append(el('button',{className:'rm',title:'Remove for everyone',textContent:'×',on:{click:e=>{e.stopPropagation();if(confirm('Remove '+g.name+' for everyone?'))db.doc('games/'+g.id).delete().catch(()=>{})}}}));
+    G.append(c)})}
 function launchGame(g){const u=/^https?:\/\//i.test(g.url)?g.url:'https://'+g.url;$('gsTitle').textContent=g.name;const ex=$('gsExt');ex.href=u;ex.innerHTML=ic('ext')+'<span>New tab</span>';$('gsFrame').src=u;$('gshell').classList.remove('hide')}
 $('gamesBtn').onclick=openGames;
 $('gClose').onclick=()=>$('games').classList.add('hide');
 $('gsBack').onclick=()=>{$('gshell').classList.add('hide');$('gsFrame').src='about:blank'};
-$('gAdd').onclick=()=>{const name=prompt('Game name:');if(!name)return;let url=prompt('Game link (e.g. mygame.vercel.app):');if(!url)return;const a=customGames();a.push({name:name.trim().slice(0,40),url:url.trim()});setCustomGames(a);renderGames()};
+$('gAdd').onclick=async()=>{const name=prompt('Game name:');if(!name)return;let url=prompt('Game link (e.g. mygame.vercel.app):');if(!url)return;try{await db.collection('games').add({name:name.trim().slice(0,40),url:url.trim().slice(0,200),by:me.num,t:Date.now()})}catch(e){alert('Could not add game')}};
 $('view').onclick=()=>$('view').classList.add('hide');
 (function(){const cv=$('cutCv');if(!cv)return;cv.addEventListener('mousedown',cutDown);cv.addEventListener('mousemove',cutMove);addEventListener('mouseup',cutUp);
 cv.addEventListener('touchstart',cutDown,{passive:false});cv.addEventListener('touchmove',cutMove,{passive:false});cv.addEventListener('touchend',cutUp);
