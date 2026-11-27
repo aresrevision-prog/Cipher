@@ -1323,7 +1323,7 @@ let gFolder='';function renderGames(){const G=$('gGrid');G.textContent='';
     if(!g.def&&(g.by===me.num||me.num===ADMIN))c.append(el('button',{className:'rm',title:'Remove for everyone',textContent:'×',on:{click:e=>{e.stopPropagation();if(confirm('Remove '+g.name+' for everyone?'))db.doc('games/'+g.id).delete().catch(()=>{})}}}));
     G.append(c)});
   if(!inT){const n=list.filter(g=>g.test).length;if(n)G.append(el('div',{className:'gcard',on:{click:()=>{gFolder='test';renderGames()}}},el('div',{className:'gico'},'🧪'),el('b',{},'Test games'),el('div',{className:'play'},n+' games ▸')))}}
-function launchGame(g){const u=/^https?:\/\//i.test(g.url)?g.url:'https://'+g.url;$('gsTitle').textContent=g.name;const ex=$('gsExt');ex.href=u;ex.innerHTML=ic('ext')+'<span>New tab</span>';$('gsFrame').src=u;$('gshell').classList.remove('hide')}
+function launchGame(g){const u=/^(https?:\/\/|\/)/i.test(g.url)?g.url:'https://'+g.url;$('gsTitle').textContent=g.name;const ex=$('gsExt');ex.href=u;ex.innerHTML=ic('ext')+'<span>New tab</span>';$('gsFrame').src=u;$('gshell').classList.remove('hide')}
 $('gamesBtn').onclick=openGames;
 $('gClose').onclick=()=>$('games').classList.add('hide');
 $('gsBack').onclick=()=>{$('gshell').classList.add('hide');$('gsFrame').src='about:blank'};
