@@ -202,7 +202,7 @@ label.chk{flex-direction:row;align-items:center;gap:10px;font-size:14px;color:va
   <aside id="side">
     <div class="bar"><div class="av" id="myAv"></div><div class="t"><b id="myName"></b><small id="myNum"></small></div>
       <button class="ghost" id="gamesBtn" title="Games"></button><button class="ghost hide" id="admBtn" title="Admin"></button><button class="ghost" id="setBtn" title="Settings"></button><button class="ghost" id="lockBtn" title="Log out"></button></div>
-    <div class="tabs"><button data-tab="chats" class="on">Chats</button><button data-tab="contacts">Contacts</button></div>
+    <div class="tabs"><button data-tab="dms" class="on">DMs</button><button data-tab="groups">Groups</button><button data-tab="contacts">Contacts</button></div>
     <div id="tabChats" style="display:contents">
       <div class="tool"><input id="newNum" placeholder="Text a number…" inputmode="numeric" maxlength="12"><button id="newGo">Go</button><button id="grpBtn" class="ghost" title="New group"></button></div>
       <div class="err" id="newErr" style="padding:0 12px"></div>
@@ -454,9 +454,11 @@ function start(){
 }
 
 /* ---------- tabs / lists ---------- */
+let listFilter='dms';
 document.querySelectorAll('#side .tabs button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('#side .tabs button').forEach(x=>x.classList.toggle('on',x===b));
-  $('tabChats').classList.toggle('hide',b.dataset.tab!=='chats');$('tabContacts').classList.toggle('hide',b.dataset.tab!=='contacts');
+  const t=b.dataset.tab;$('tabContacts').classList.toggle('hide',t!=='contacts');$('tabChats').classList.toggle('hide',t==='contacts');
+  if(t==='dms'||t==='groups'){listFilter=t;renderList()}
 });
 function when(t){const d=new Date(t),n=new Date();return d.toDateString()===n.toDateString()?d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString()}
 function markSeen(){if(!openId)return;const s=ls('seen_'+me.num)||{};s[openId]=Date.now();ls('seen_'+me.num,s)}
@@ -487,15 +489,17 @@ function testNote(){
 function setBadge(n){document.title=(n?'('+n+') ':'')+'Cipher';try{n?navigator.setAppBadge&&navigator.setAppBadge(n):navigator.clearAppBadge&&navigator.clearAppBadge()}catch(e){}}
 function renderList(){
   const L=$('list');L.textContent='';
-  if(!inbox.length){L.append(emptyEl('chat','No chats yet — text a number above'));setBadge(0);return}
-  const seen=ls('seen_'+me.num)||{};let unread=0;
-  for(const c of inbox){if(!isG(c.id)&&isBlocked(c.id))continue;const un=!c.q&&c.id!==openId&&c.t>(seen[c.id]||0)&&c.by!==me.num;if(un)unread++;
-    const n=titleOf(c),g=isG(c.id);
+  const seen=ls('seen_'+me.num)||{};let unread=0,shown=0;
+  for(const c of inbox){const g=isG(c.id);if(!g&&isBlocked(c.id))continue;
+    const un=!c.q&&c.id!==openId&&c.t>(seen[c.id]||0)&&c.by!==me.num;if(un)unread++;
+    if((listFilter==='groups')!==g)continue;shown++;
+    const n=titleOf(c);
     L.append(el('div',{className:'item'+(c.id===openId?' on':''),on:{click:()=>openChat(c.id)}},
       avatar(c.id,n,g),
       el('div',{className:'t'},el('b',{},n),el('small',{},(g?'Group':'#'+c.id)+' · '+when(c.t))),
       un?el('div',{className:'dot'}):null));
   }
+  if(!shown)L.append(emptyEl(listFilter==='groups'?'group':'chat',listFilter==='groups'?'No groups yet — tap the group button to make one':'No DMs yet — text a number above'));
   setBadge(unread);
 }
 function renderContacts(){
