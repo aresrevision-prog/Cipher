@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#10b981">
 <meta name="description" content="Private, end-to-end encrypted messaging">
 <link rel="manifest" href="/manifest.webmanifest">
-<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon.png" type="image/png">
 <link rel="apple-touch-icon" href="/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -39,7 +39,7 @@ input:focus,select:focus{border-color:var(--acc);box-shadow:0 0 0 4px color-mix(
 #auth{background:radial-gradient(1200px 600px at 10% -10%,color-mix(in srgb,var(--acc) 35%,transparent),transparent 60%),radial-gradient(900px 600px at 110% 110%,color-mix(in srgb,var(--acc2) 30%,transparent),transparent 60%),var(--bg)}
 .card{background:var(--solid);border:1px solid var(--line);border-radius:22px;padding:26px;width:100%;max-width:410px;display:flex;flex-direction:column;gap:13px;max-height:100%;overflow-y:auto;box-shadow:var(--shadow)}
 #auth .card{padding:30px}
-.logo{width:66px;height:66px;border-radius:21px;background:linear-gradient(145deg,#2ee89f,#0a8f54);display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 14px 30px -10px #0a8f54,inset 0 1px 0 rgba(255,255,255,.45);margin-bottom:2px}
+.logo{width:66px;height:66px;border-radius:21px;overflow:hidden;display:flex;align-items:center;justify-content:center;box-shadow:0 14px 30px -10px #0a8f54;margin-bottom:2px}
 .logo svg{width:44px;height:44px}
 .card h1{margin:0;font-size:22px;font-weight:800;letter-spacing:-.02em}
 .card h2{margin:8px 0 0;font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.09em;font-weight:700}
@@ -1305,25 +1305,17 @@ addEventListener('click',closeCtx);addEventListener('scroll',closeCtx,true);
 function gameMenu(x,y,code){closeCtx();const m=el('div',{className:'ctxm'});const play=el('button',{on:{click:()=>{closeCtx();playGame(code)}}});play.innerHTML=ic('game')+'<span>Play game</span>';const copy=el('button',{on:{click:async()=>{closeCtx();try{await navigator.clipboard.writeText(code);toast('Code copied')}catch(e){}}}});copy.innerHTML=ic('clip')+'<span>Copy code</span>';m.append(play,copy);document.body.append(m);ctxEl=m;const r=m.getBoundingClientRect();m.style.left=Math.min(x,innerWidth-r.width-8)+'px';m.style.top=Math.min(y,innerHeight-r.height-8)+'px'}
 function playGame(code){const fr=$('gFrame');fr.srcdoc=code;$('gTitle').textContent='Game';$('game').classList.remove('hide')}
 $('gClose').onclick=()=>{$('game').classList.add('hide');$('gFrame').srcdoc='about:blank';$('gFrame').removeAttribute('srcdoc')};
-const DEF_GAMES=[{name:'MagicWinter Studio',url:'https://MagicWinter.vercel.app',emoji:'🏠'},{name:'Bed Wars',url:'https://bedwars-sky.vercel.app',emoji:'🛏️'},{name:'Tycoon World 3D',url:'https://tycoon-mws.vercel.app',emoji:'🎲'},{name:'Rocket Derby',url:'https://MagicWinter.vercel.app/rocket-derby',emoji:'🚗'},{name:'Ares Revision',url:'https://ares-revision.vercel.app',emoji:'📚'},
-{name:'Binding of Claude',url:'/games/binding-of-claude.html',emoji:'🗝️'},{name:'Territory Clash',url:'/games/territory-clash.html',emoji:'🗺️'},
-{name:'Space Waves',url:'/games/space-waves.html',emoji:'🚀'},{name:'Night Shift',url:'/games/night-shift.html',emoji:'🔦'},{name:'Dino Dash',url:'/games/dino-dash.html',emoji:'🦖'},
-{name:'Snake',url:'/games/snake.html',emoji:'🐍'},{name:'2048',url:'/games/2048.html',emoji:'🔢'},{name:'Cookie Clicker',url:'/games/cookie-clicker.html',emoji:'🍪'},{name:'Workshop',url:'/games/workshop.html',emoji:'🔧'},
-{name:'Frontlines',url:'https://frontlineswarfare.vercel.app',emoji:'⚔️',test:true},{name:'Port Sable',url:'https://ares-revision.vercel.app/games/portsable.html',emoji:'⚓',test:true},{name:'Empire Heat',url:'https://ares-revision.vercel.app/games/empireheat.html',emoji:'🔥',test:true},{name:'World Minds',url:'https://ares-revision.vercel.app/games/worldminds.html',emoji:'🌍',test:true}];
+const DEF_GAMES=[{name:'MagicWinter Studio',url:'https://MagicWinter.vercel.app',emoji:'🏠'},{name:'Bed Wars',url:'https://bedwars-sky.vercel.app',emoji:'🛏️'},{name:'Tycoon World 3D',url:'https://tycoon-mws.vercel.app',emoji:'🎲'},{name:'Frontlines',url:'https://frontlineswarfare.vercel.app',emoji:'⚔️'},{name:'Port Sable',url:'https://ares-revision.vercel.app/games/portsable.html',emoji:'⚓'},{name:'Rocket Derby',url:'https://MagicWinter.vercel.app/rocket-derby',emoji:'🚗'},{name:'Ares Revision',url:'https://ares-revision.vercel.app',emoji:'📚'}];
 let sharedGames=[],unsubGames=null;
 function startGames(){if(unsubGames)unsubGames();unsubGames=db.collection('games').orderBy('t','asc').limit(100).onSnapshot(sn=>{sharedGames=sn.docs.map(d=>({id:d.id,...d.data()}));if(!$('games').classList.contains('hide'))renderGames()},()=>{})}
-function openGames(){gFolder='';renderGames();if(!unsubGames)startGames();$('games').classList.remove('hide')}
-let gFolder='';function renderGames(){const G=$('gGrid');G.textContent='';
-  const nk=x=>String(x||'').toLowerCase().replace(/[^a-z0-9]/g,''),seen=new Set(DEF_GAMES.flatMap(g=>[nk(g.name),nk(g.url.replace(/^https?:\/\//,''))]));
-  const list=DEF_GAMES.map(g=>({...g,def:true})).concat(sharedGames.filter(g=>{const a=nk(g.name),b=nk(String(g.url||'').replace(/^https?:\/\//,''));if(seen.has(a)||seen.has(b))return false;seen.add(a);seen.add(b);return true}).map(g=>({...g,def:false})));
-  const inT=gFolder==='test',shown=list.filter(g=>!!g.test===inT);
-  if(inT)G.append(el('div',{className:'gcard',on:{click:()=>{gFolder='';renderGames()}}},el('div',{className:'gico'},'←'),el('b',{},'Back'),el('div',{className:'play'},'All games')));
-  shown.forEach(g=>{const c=el('div',{className:'gcard',on:{click:()=>launchGame(g)}});
+function openGames(){renderGames();if(!unsubGames)startGames();$('games').classList.remove('hide')}
+function renderGames(){const G=$('gGrid');G.textContent='';
+  const list=DEF_GAMES.map(g=>({...g,def:true})).concat(sharedGames.map(g=>({...g,def:false})));
+  list.forEach(g=>{const c=el('div',{className:'gcard',on:{click:()=>launchGame(g)}});
     c.append(el('div',{className:'gico'},g.emoji||(g.name[0]||'G').toUpperCase()),el('b',{},g.name),el('div',{className:'play'},'Play ▶'));
     if(!g.def&&(g.by===me.num||me.num===ADMIN))c.append(el('button',{className:'rm',title:'Remove for everyone',textContent:'×',on:{click:e=>{e.stopPropagation();if(confirm('Remove '+g.name+' for everyone?'))db.doc('games/'+g.id).delete().catch(()=>{})}}}));
-    G.append(c)});
-  if(!inT){const n=list.filter(g=>g.test).length;if(n)G.append(el('div',{className:'gcard',on:{click:()=>{gFolder='test';renderGames()}}},el('div',{className:'gico'},'🧪'),el('b',{},'Test games'),el('div',{className:'play'},n+' games ▸')))}}
-function launchGame(g){const u=/^(https?:\/\/|\/)/i.test(g.url)?g.url:'https://'+g.url;$('gsTitle').textContent=g.name;const ex=$('gsExt');ex.href=u;ex.innerHTML=ic('ext')+'<span>New tab</span>';$('gsFrame').src=u;$('gshell').classList.remove('hide')}
+    G.append(c)})}
+function launchGame(g){const u=/^https?:\/\//i.test(g.url)?g.url:'https://'+g.url;$('gsTitle').textContent=g.name;const ex=$('gsExt');ex.href=u;ex.innerHTML=ic('ext')+'<span>New tab</span>';$('gsFrame').src=u;$('gshell').classList.remove('hide')}
 $('gamesBtn').onclick=openGames;
 $('gClose').onclick=()=>$('games').classList.add('hide');
 $('gsBack').onclick=()=>{$('gshell').classList.add('hide');$('gsFrame').src='about:blank'};
@@ -1336,7 +1328,7 @@ document.querySelectorAll('#cutModes button').forEach(btn=>btn.onclick=()=>setCu
 $('back').onclick=()=>{if(rec)stopRec(false);$('callA').classList.add('hide');$('callV').classList.add('hide');openId=null;nodesFor=null;$('cAv').classList.add('hide');if(unsubMsgs){unsubMsgs();unsubMsgs=null}$('app').classList.remove('chat');$('composer').classList.add('hide');$('infoBtn').classList.add('hide');$('cName').textContent='Pick a chat';$('cSub').textContent='';$('msgs').textContent='';$('msgs').append(welcome());renderList()};
 $('lockBtn').onclick=()=>{if(confirm('Log out?'))logout()};
 
-$('logo').innerHTML='<svg viewBox="0 0 512 512"><text x="256" y="272" text-anchor="middle" dominant-baseline="central" font-family="Plus Jakarta Sans,system-ui,Arial,sans-serif" font-weight="800" font-size="340" fill="#fff">C</text></svg>';for(const[k,v]of[['gamesBtn','game'],['gClose','x'],['gsBack','back'],['admBtn','shield'],['setBtn','gear'],['lockBtn','out'],['grpBtn','group'],['back','back'],['infoBtn','info'],['photoBtn','clip'],['callA','phone'],['callV','video'],['cAccept','phone'],['cDecline','phone'],['cHang','phone'],['cMute','mic'],['cCam','video'],['cShare','screen'],['stickBtn','sticker'],['micBtn','mic'],['recX','x'],['send','send']])$(k).innerHTML=ic(v);$('msgs').append(welcome());
+$('logo').innerHTML='<img src="/icon-192.png" alt="Cipher" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">';for(const[k,v]of[['gamesBtn','game'],['gClose','x'],['gsBack','back'],['admBtn','shield'],['setBtn','gear'],['lockBtn','out'],['grpBtn','group'],['back','back'],['infoBtn','info'],['photoBtn','clip'],['callA','phone'],['callV','video'],['cAccept','phone'],['cDecline','phone'],['cHang','phone'],['cMute','mic'],['cCam','video'],['cShare','screen'],['stickBtn','sticker'],['micBtn','mic'],['recX','x'],['send','send']])$(k).innerHTML=ic(v);$('msgs').append(welcome());
 init();
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
 </script>
