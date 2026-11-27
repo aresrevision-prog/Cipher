@@ -1,0 +1,187 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>2048</title>
+<style>html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:'DM Sans',system-ui,sans-serif}
+#g2048-overlay{display:flex!important}button[onclick$="Close()"],.gi-back{display:none!important}
+.g2048-tile{display:flex;align-items:center;justify-content:center;border-radius:6px;font-weight:800;font-family:'DM Sans',sans-serif;transition:all .1s;}
+.game-intro{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;padding:16px;background:radial-gradient(ellipse at 50% 30%,rgba(var(--rgb),.18),rgba(3,4,8,.97) 70%);font-family:'Courier New',ui-monospace,monospace;animation:acIn .4s ease both;}
+.game-intro .gi-card{width:100%;max-width:440px;text-align:center;padding:26px 24px 22px;border-radius:16px;background:rgba(8,8,12,.88);border:2px solid rgb(var(--rgb));box-shadow:0 0 36px rgba(var(--rgb),.35);}
+.game-intro .gi-emoji{font-size:56px;filter:drop-shadow(0 6px 14px rgba(0,0,0,.7));}
+.game-intro .gi-title{font-size:clamp(26px,7vw,38px);font-weight:900;letter-spacing:.2em;color:rgb(var(--rgb));text-shadow:0 0 22px rgba(var(--rgb),.5);margin:6px 0 2px;}
+.game-intro .gi-tag{font-size:11px;letter-spacing:.3em;color:rgba(255,255,255,.45);margin-bottom:16px;}
+.game-intro .gi-how{text-align:left;font-size:12.5px;line-height:1.7;color:rgba(255,255,255,.78);margin:0 0 16px;padding:12px 14px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);font-family:'DM Sans',system-ui,sans-serif;}
+.game-intro .gi-best{font-size:12px;letter-spacing:.15em;color:rgba(255,255,255,.55);margin-bottom:14px;}
+.game-intro .gi-play{width:100%;padding:13px;border-radius:11px;border:none;cursor:pointer;font-family:inherit;font-size:16px;font-weight:900;letter-spacing:.3em;color:#0a0a0a;background:rgb(var(--rgb));box-shadow:0 0 22px rgba(var(--rgb),.5);transition:transform .15s,box-shadow .15s;}
+.game-intro .gi-play:hover{transform:scale(1.03);box-shadow:0 0 34px rgba(var(--rgb),.8);}
+.game-intro .gi-back{margin-top:12px;background:none;border:none;color:rgba(255,255,255,.4);font-size:11px;letter-spacing:.15em;cursor:pointer;font-family:inherit;}
+.game-intro .gi-back:hover{color:#fff;}
+</style></head><body>
+<div id="arena-hub" style="display:none"></div>
+<div id="g2048-overlay" style="display:none;position:fixed;inset:0;z-index:99500;
+  background:#1a1108;flex-direction:column;font-family:'DM Sans',sans-serif;">
+  <div style="flex-shrink:0;display:flex;align-items:center;gap:10px;padding:8px 12px;
+    background:#2a1e0f;border-bottom:1px solid rgba(245,158,11,0.3);">
+    <div style="font-size:14px;font-weight:800;color:#F59E0B;">🔢 2048</div>
+    <div id="g2048-score" style="font-size:12px;color:rgba(255,255,255,0.5);">Score: 0</div>
+    <button onclick="g2048NewGame()" style="background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.4);
+      color:#F59E0B;border-radius:7px;padding:4px 12px;font-size:12px;cursor:pointer;font-family:inherit;">New Game</button>
+    <button onclick="g2048Close()" style="margin-left:auto;background:rgba(255,255,255,0.07);
+      border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.5);
+      border-radius:7px;padding:4px 12px;font-size:12px;cursor:pointer;font-family:inherit;">✕</button>
+  </div>
+  <div style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;padding:12px;">
+    <div id="g2048-board" style="display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,1fr);
+      gap:8px;background:#2a1e0f;border-radius:10px;padding:8px;width:min(340px,85vw);aspect-ratio:1;box-sizing:border-box;"></div>
+    <div id="g2048-msg" style="color:rgba(255,255,255,0.5);font-size:13px;text-align:center;min-height:20px;">Use arrow keys or swipe to merge tiles.</div>
+  </div>
+</div>
+<script>
+function _esc(t){return String(t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function _gameIntro(overlayId, o){
+  const ov=document.getElementById(overlayId); if(!ov) return;
+  const old=ov.querySelector('.game-intro'); if(old) old.remove();
+  const el=document.createElement('div'); el.className='game-intro'; el.style.setProperty('--rgb',o.rgb);
+  let best=''; try{ const v=o.best&&o.best(); if(v) best='<div class="gi-best">🏆 BEST: '+_esc(String(v))+'</div>'; }catch(e){}
+  el.innerHTML='<div class="gi-card"><div class="gi-emoji">'+o.emoji+'</div><div class="gi-title">'+o.title+'</div><div class="gi-tag">'+o.tag+'</div>'
+    +'<div class="gi-how">'+o.how.map(h=>'<div>'+h+'</div>').join('')+'</div>'+best
+    +'<button class="gi-play">▶ PLAY</button><button class="gi-back">← BACK TO ARENA</button></div>';
+  el.querySelector('.gi-play').onclick=function(){ el.remove(); if(o.onPlay) o.onPlay(); };
+  el.querySelector('.gi-back').onclick=function(){ el.remove(); o.close(); };
+  ov.appendChild(el);
+  // BoC-style header: letter-spaced title + "Back to Arena"
+  const hb=ov.querySelector('button[onclick$="Close()"]'); if(hb){ hb.textContent='← Back to Arena'; hb.style.letterSpacing='.05em'; }
+}
+var _g2048 = null;
+function g2048Open(){
+  document.getElementById('arena-hub').style.display = 'none';
+  document.getElementById('g2048-overlay').style.display = 'flex';
+  g2048NewGame();
+  _gameIntro('g2048-overlay',{emoji:'🔢',title:'2048',tag:'PUZZLE',rgb:'245,170,40',close:g2048Close,
+    onPlay:function(){ document.removeEventListener('keydown', g2048KeyHandler); document.addEventListener('keydown', g2048KeyHandler); },
+    how:['⌨️ Arrow keys or swipe to slide tiles','🔗 Matching tiles merge into one','🎯 Reach the 2048 tile to win','🧠 Plan ahead — the board fills up fast']});
+}
+function g2048Close(){
+  document.getElementById('g2048-overlay').style.display = 'none';
+  document.getElementById('arena-hub').style.display = 'flex';
+  document.removeEventListener('keydown', g2048KeyHandler);
+}
+function g2048NewGame(){
+  _g2048 = { grid: [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]], score: 0, over: false };
+  g2048AddTile(); g2048AddTile();
+  document.getElementById('g2048-score').textContent = 'Score: 0';
+  document.getElementById('g2048-msg').textContent = 'Use arrow keys or swipe to merge tiles.';
+  g2048Render();
+  var board = document.getElementById('g2048-board');
+  var touchStartX, touchStartY;
+  board.ontouchstart = function(e){ touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY; };
+  board.ontouchend = function(e){
+    if(touchStartX == null) return;
+    var dx = e.changedTouches[0].clientX - touchStartX;
+    var dy = e.changedTouches[0].clientY - touchStartY;
+    if(Math.max(Math.abs(dx),Math.abs(dy)) < 20) return;
+    if(Math.abs(dx) > Math.abs(dy)) g2048Move(dx > 0 ? 'right' : 'left');
+    else g2048Move(dy > 0 ? 'down' : 'up');
+  };
+}
+function g2048AddTile(){
+  var empty = [];
+  for(var r=0;r<4;r++) for(var c=0;c<4;c++) if(_g2048.grid[r][c]===0) empty.push([r,c]);
+  if(!empty.length) return;
+  var pick = empty[Math.floor(Math.random()*empty.length)];
+  _g2048.grid[pick[0]][pick[1]] = Math.random() < 0.9 ? 2 : 4;
+  _g2048LastNew = { r: pick[0], c: pick[1] };
+}
+function g2048KeyHandler(e){
+  var map = { ArrowUp:'up', ArrowDown:'down', ArrowLeft:'left', ArrowRight:'right' };
+  if(map[e.key]){ e.preventDefault(); g2048Move(map[e.key]); }
+}
+function g2048Move(dir){
+  if(!_g2048 || _g2048.over) return;
+  var g = _g2048.grid, moved = false, gained = 0;
+  function slideLine(line){
+    var vals = line.filter(function(v){ return v!==0; });
+    var out = [];
+    for(var i=0;i<vals.length;i++){
+      if(i<vals.length-1 && vals[i]===vals[i+1]){ out.push(vals[i]*2); gained += vals[i]*2; i++; }
+      else out.push(vals[i]);
+    }
+    while(out.length<4) out.push(0);
+    return out;
+  }
+  var newGrid = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]];
+  if(dir==='left' || dir==='right'){
+    for(var r=0;r<4;r++){
+      var line = g[r].slice();
+      if(dir==='right') line.reverse();
+      var res = slideLine(line);
+      if(dir==='right') res.reverse();
+      newGrid[r] = res;
+    }
+  } else {
+    for(var c=0;c<4;c++){
+      var line = [g[0][c],g[1][c],g[2][c],g[3][c]];
+      if(dir==='down') line.reverse();
+      var res = slideLine(line);
+      if(dir==='down') res.reverse();
+      for(var r2=0;r2<4;r2++) newGrid[r2][c] = res[r2];
+    }
+  }
+  moved = JSON.stringify(newGrid) !== JSON.stringify(g);
+  if(!moved) return;
+  _g2048.grid = newGrid;
+  _g2048.score += gained;
+  document.getElementById('g2048-score').textContent = 'Score: ' + _g2048.score;
+  g2048AddTile();
+  g2048Render();
+  if(gained >= 2048 && !_g2048.won){
+    _g2048.won = true;
+    document.getElementById('g2048-msg').textContent = '🎉 You reached 2048! Keep going or start a new game.';
+    if(typeof showXpPop === 'function'){ try{ showXpPop('+20 XP · 2048'); }catch(e){} }
+  }
+  if(g2048IsGameOver()){
+    _g2048.over = true;
+    document.getElementById('g2048-msg').textContent = 'No more moves — final score ' + _g2048.score + '. Click New Game to retry.';
+  }
+}
+function g2048IsGameOver(){
+  var g = _g2048.grid;
+  for(var r=0;r<4;r++) for(var c=0;c<4;c++){
+    if(g[r][c]===0) return false;
+    if(c<3 && g[r][c]===g[r][c+1]) return false;
+    if(r<3 && g[r][c]===g[r+1][c]) return false;
+  }
+  return true;
+}
+var _g2048Colors = {
+  2:['#3d3020','#2a2115'], 4:['#4a3d28','#332a1a'], 8:['#e0954a','#c07a35'],
+  16:['#e8a344','#d1852b'], 32:['#ef8a3d','#d66e26'], 64:['#f26b3d','#d9501f'],
+  128:['#f0d64a','#d9b82f'], 256:['#f0cc2e','#d9ab1a'], 512:['#f0c318','#d99e0a'],
+  1024:['#f5ba05','#e08f00'], 2048:['#ffd700','#ffb300'],
+};
+var _g2048LastNew = null; // {r,c} of the most recently spawned tile, for the pop animation
+function g2048Render(){
+  var board = document.getElementById('g2048-board');
+  board.innerHTML = '';
+  for(var r=0;r<4;r++) for(var c=0;c<4;c++){
+    var v = _g2048.grid[r][c];
+    var tile = document.createElement('div');
+    tile.className = 'g2048-tile';
+    if(v){
+      var colors = _g2048Colors[v] || _g2048Colors[2048];
+      tile.style.background = 'linear-gradient(155deg,' + colors[0] + ',' + colors[1] + ')';
+      tile.style.boxShadow = v >= 8 ? '0 3px 8px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.25)' : 'inset 0 1px 0 rgba(255,255,255,0.06)';
+    } else {
+      tile.style.background = 'rgba(255,255,255,0.04)';
+      tile.style.boxShadow = 'inset 0 1px 3px rgba(0,0,0,0.2)';
+    }
+    tile.style.color = v <= 4 ? 'rgba(255,255,255,0.75)' : '#1a1108';
+    tile.style.textShadow = v > 4 ? '0 1px 1px rgba(255,255,255,0.2)' : 'none';
+    tile.style.fontSize = v >= 1000 ? '18px' : '22px';
+    tile.textContent = v || '';
+    if(_g2048LastNew && _g2048LastNew.r===r && _g2048LastNew.c===c){
+      tile.style.animation = 'g2048pop .28s cubic-bezier(.3,1.5,.5,1)';
+    }
+    board.appendChild(tile);
+  }
+  _g2048LastNew = null;
+}
+
+window.addEventListener('load',function(){try{g2048Open()}catch(e){console.error(e)}});</script></body></html>

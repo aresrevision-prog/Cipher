@@ -1,0 +1,193 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Cookie Clicker</title>
+<style>html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:'DM Sans',system-ui,sans-serif}
+#cookie-overlay{display:flex!important}button[onclick$="Close()"],.gi-back{display:none!important}
+.game-intro{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;padding:16px;background:radial-gradient(ellipse at 50% 30%,rgba(var(--rgb),.18),rgba(3,4,8,.97) 70%);font-family:'Courier New',ui-monospace,monospace;animation:acIn .4s ease both;}
+.game-intro .gi-card{width:100%;max-width:440px;text-align:center;padding:26px 24px 22px;border-radius:16px;background:rgba(8,8,12,.88);border:2px solid rgb(var(--rgb));box-shadow:0 0 36px rgba(var(--rgb),.35);}
+.game-intro .gi-emoji{font-size:56px;filter:drop-shadow(0 6px 14px rgba(0,0,0,.7));}
+.game-intro .gi-title{font-size:clamp(26px,7vw,38px);font-weight:900;letter-spacing:.2em;color:rgb(var(--rgb));text-shadow:0 0 22px rgba(var(--rgb),.5);margin:6px 0 2px;}
+.game-intro .gi-tag{font-size:11px;letter-spacing:.3em;color:rgba(255,255,255,.45);margin-bottom:16px;}
+.game-intro .gi-how{text-align:left;font-size:12.5px;line-height:1.7;color:rgba(255,255,255,.78);margin:0 0 16px;padding:12px 14px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);font-family:'DM Sans',system-ui,sans-serif;}
+.game-intro .gi-best{font-size:12px;letter-spacing:.15em;color:rgba(255,255,255,.55);margin-bottom:14px;}
+.game-intro .gi-play{width:100%;padding:13px;border-radius:11px;border:none;cursor:pointer;font-family:inherit;font-size:16px;font-weight:900;letter-spacing:.3em;color:#0a0a0a;background:rgb(var(--rgb));box-shadow:0 0 22px rgba(var(--rgb),.5);transition:transform .15s,box-shadow .15s;}
+.game-intro .gi-play:hover{transform:scale(1.03);box-shadow:0 0 34px rgba(var(--rgb),.8);}
+.game-intro .gi-back{margin-top:12px;background:none;border:none;color:rgba(255,255,255,.4);font-size:11px;letter-spacing:.15em;cursor:pointer;font-family:inherit;}
+.game-intro .gi-back:hover{color:#fff;}
+#cookie-big:hover{filter:drop-shadow(0 12px 18px rgba(0,0,0,0.55)) drop-shadow(0 0 40px rgba(255,200,100,0.7));}
+@keyframes cookieFloat{0%,100%{translate:0 0}50%{translate:0 -6px}}</style></head><body>
+<div id="arena-hub" style="display:none"></div>
+<div id="cookie-overlay" style="display:none;position:fixed;inset:0;z-index:99500;
+  background:linear-gradient(180deg,#2b1608,#1a0d04);flex-direction:column;font-family:'DM Sans',sans-serif;">
+  <div style="flex-shrink:0;display:flex;align-items:center;gap:10px;padding:8px 12px;
+    background:#170b03;border-bottom:1px solid rgba(217,146,66,0.3);">
+    <div style="font-size:14px;font-weight:800;color:#e8a54c;">🍪 Cookie Clicker</div>
+    <button onclick="cookieClose()" style="margin-left:auto;background:rgba(255,255,255,0.07);
+      border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.5);
+      border-radius:7px;padding:4px 12px;font-size:12px;cursor:pointer;font-family:inherit;">✕</button>
+  </div>
+  <div style="flex:1;display:flex;overflow:hidden;">
+    <!-- Clicker side -->
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;gap:6px;">
+      <div id="cookie-count" style="font-size:34px;font-weight:800;color:#f5deb3;text-shadow:0 0 20px rgba(232,165,76,0.4);">0 cookies</div>
+      <div id="cookie-cps" style="font-size:13px;color:#b89060;margin-bottom:10px;">per second: 0</div>
+      <div id="cookie-big" onclick="cookieClick(event)" onmouseenter="this.dataset.h=1" onmouseleave="this.dataset.h=0" style="font-size:min(200px,38vw);line-height:1;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;position:relative;transition:transform .08s;filter:drop-shadow(0 12px 18px rgba(0,0,0,0.55)) drop-shadow(0 0 28px rgba(232,165,76,0.35));animation:cookieFloat 3s ease-in-out infinite;">🍪</div>
+      <style>@keyframes cookieFloat{0%,100%{translate:0 0}50%{translate:0 -6px}}#cookie-big:hover{filter:drop-shadow(0 12px 18px rgba(0,0,0,0.55)) drop-shadow(0 0 40px rgba(255,200,100,0.7));}</style>
+      <div id="cookie-click-power" style="font-size:11px;color:#8a6a48;margin-top:10px;">+1 per click</div>
+    </div>
+    <!-- Shop side -->
+    <div style="width:270px;flex-shrink:0;overflow-y:auto;padding:12px;border-left:1px solid rgba(217,146,66,0.2);background:rgba(0,0,0,0.2);">
+      <div style="font-size:10px;color:#8a6a48;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Upgrades</div>
+      <div id="cookie-upgrades"></div>
+      <div style="font-size:10px;color:#8a6a48;text-transform:uppercase;letter-spacing:.08em;margin:14px 0 8px;">Buildings</div>
+      <div id="cookie-buildings"></div>
+    </div>
+  </div>
+</div>
+<script>
+function _esc(t){return String(t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function _gameIntro(overlayId, o){
+  const ov=document.getElementById(overlayId); if(!ov) return;
+  const old=ov.querySelector('.game-intro'); if(old) old.remove();
+  const el=document.createElement('div'); el.className='game-intro'; el.style.setProperty('--rgb',o.rgb);
+  let best=''; try{ const v=o.best&&o.best(); if(v) best='<div class="gi-best">🏆 BEST: '+_esc(String(v))+'</div>'; }catch(e){}
+  el.innerHTML='<div class="gi-card"><div class="gi-emoji">'+o.emoji+'</div><div class="gi-title">'+o.title+'</div><div class="gi-tag">'+o.tag+'</div>'
+    +'<div class="gi-how">'+o.how.map(h=>'<div>'+h+'</div>').join('')+'</div>'+best
+    +'<button class="gi-play">▶ PLAY</button><button class="gi-back">← BACK TO ARENA</button></div>';
+  el.querySelector('.gi-play').onclick=function(){ el.remove(); if(o.onPlay) o.onPlay(); };
+  el.querySelector('.gi-back').onclick=function(){ el.remove(); o.close(); };
+  ov.appendChild(el);
+  // BoC-style header: letter-spaced title + "Back to Arena"
+  const hb=ov.querySelector('button[onclick$="Close()"]'); if(hb){ hb.textContent='← Back to Arena'; hb.style.letterSpacing='.05em'; }
+}
+// ── Cookie Clicker ───────────────────────────────────────────────────
+var _cookieState = null;
+var _cookieBuildingDefs = [
+  { key:'cursor', icon:'👆', name:'Cursor', baseCost:15, cps:0.1 },
+  { key:'baker', icon:'🧑‍🍳', name:'Baker', baseCost:100, cps:1 },
+  { key:'oven', icon:'🔥', name:'Oven', baseCost:1100, cps:8 },
+  { key:'factory', icon:'🏭', name:'Factory', baseCost:12000, cps:47 },
+  { key:'bakery', icon:'🏪', name:'Bakery Chain', baseCost:130000, cps:260 },
+  { key:'mine', icon:'⛏️', name:'Cookie Mine', baseCost:1400000, cps:1400 },
+];
+var _cookieUpgradeDefs = [
+  { key:'finger', name:'Reinforced Finger', desc:'+1 per click', cost:100, effect:(s)=>{ s.clickPower += 1; } },
+  { key:'rollingpin', name:'Golden Rolling Pin', desc:'Doubles click power', cost:5000, effect:(s)=>{ s.clickPower *= 2; } },
+  { key:'grandma', name:"Grandma's Recipe", desc:'+20% from all buildings', cost:20000, effect:(s)=>{ s.buildingMult *= 1.2; } },
+  { key:'megaclick', name:'Mega Click', desc:'Doubles click power again', cost:250000, effect:(s)=>{ s.clickPower *= 2; } },
+];
+function cookieOpen(){
+  document.getElementById('arena-hub').style.display = 'none';
+  document.getElementById('cookie-overlay').style.display = 'flex';
+  if(!_cookieState){
+    _cookieState = { cookies:0, clickPower:1, buildingMult:1, owned:{}, upgradesBought:{} };
+    _cookieBuildingDefs.forEach(b => { _cookieState.owned[b.key] = 0; });
+    _cookieTick();
+    setInterval(_cookieTick, 1000);
+  }
+  cookieRender();
+  _gameIntro('cookie-overlay',{emoji:'🍪',title:'COOKIE CLICKER',tag:'IDLE CLICKER',rgb:'232,165,76',close:cookieClose,
+    how:['👆 Click the big cookie to bake','🏭 Buy buildings that bake for you','⬆️ Buy upgrades to multiply your output','⏳ Keep playing — numbers get huge']});
+}
+function cookieClose(){
+  document.getElementById('cookie-overlay').style.display = 'none';
+  document.getElementById('arena-hub').style.display = 'flex';
+}
+function _cookieCPS(){
+  if(!_cookieState) return 0;
+  let total = 0;
+  _cookieBuildingDefs.forEach(b => { total += b.cps * _cookieState.owned[b.key]; });
+  return total * _cookieState.buildingMult;
+}
+function _cookieTick(){
+  if(!_cookieState || document.getElementById('cookie-overlay').style.display !== 'flex') {
+    if(_cookieState) _cookieState.cookies += _cookieCPS(); // still accrue while away, just don't re-render
+    return;
+  }
+  _cookieState.cookies += _cookieCPS();
+  cookieRender();
+}
+function cookieClick(e){
+  if(!_cookieState) return;
+  _cookieState.cookies += _cookieState.clickPower;
+  const big = document.getElementById('cookie-big');
+  big.style.transform = 'scale(0.92)';
+  setTimeout(() => { big.style.transform = 'scale(1)'; }, 80);
+  // Floating "+N" popup at the click position
+  const pop = document.createElement('div');
+  pop.textContent = '+' + Math.round(_cookieState.clickPower*10)/10;
+  pop.style.cssText = 'position:fixed;left:'+e.clientX+'px;top:'+e.clientY+'px;color:#f5deb3;'
+    + 'font-weight:800;font-size:16px;pointer-events:none;z-index:99999;text-shadow:0 2px 4px rgba(0,0,0,0.5);'
+    + 'transition:all .7s ease-out;';
+  document.body.appendChild(pop);
+  requestAnimationFrame(() => { pop.style.transform = 'translateY(-40px)'; pop.style.opacity = '0'; });
+  setTimeout(() => pop.remove(), 750);
+  cookieRender();
+}
+function _cookieBuildingCost(def){
+  const owned = _cookieState.owned[def.key];
+  return Math.ceil(def.baseCost * Math.pow(1.15, owned));
+}
+function cookieBuyBuilding(key){
+  const def = _cookieBuildingDefs.find(b => b.key === key);
+  const cost = _cookieBuildingCost(def);
+  if(_cookieState.cookies < cost) return;
+  _cookieState.cookies -= cost;
+  _cookieState.owned[key]++;
+  cookieRender();
+}
+function cookieBuyUpgrade(key){
+  const def = _cookieUpgradeDefs.find(u => u.key === key);
+  if(_cookieState.upgradesBought[key] || _cookieState.cookies < def.cost) return;
+  _cookieState.cookies -= def.cost;
+  _cookieState.upgradesBought[key] = true;
+  def.effect(_cookieState);
+  cookieRender();
+}
+function _cookieFmt(n){
+  if(n >= 1e9) return (n/1e9).toFixed(2) + 'B';
+  if(n >= 1e6) return (n/1e6).toFixed(2) + 'M';
+  if(n >= 1e3) return (n/1e3).toFixed(1) + 'K';
+  return Math.floor(n).toString();
+}
+function cookieRender(){
+  if(!_cookieState) return;
+  document.getElementById('cookie-count').textContent = _cookieFmt(_cookieState.cookies) + ' cookies';
+  document.getElementById('cookie-cps').textContent = 'per second: ' + _cookieFmt(_cookieCPS());
+  document.getElementById('cookie-click-power').textContent = '+' + (Math.round(_cookieState.clickPower*10)/10) + ' per click';
+
+  const upgEl = document.getElementById('cookie-upgrades');
+  upgEl.innerHTML = _cookieUpgradeDefs.map(u => {
+    const bought = _cookieState.upgradesBought[u.key];
+    const affordable = !bought && _cookieState.cookies >= u.cost;
+    if(bought) return '';
+    return `<div onclick="cookieBuyUpgrade('${u.key}')" style="padding:8px 10px;border-radius:9px;margin-bottom:6px;cursor:pointer;
+      background:${affordable?'rgba(232,165,76,0.15)':'rgba(255,255,255,0.03)'};
+      border:1px solid ${affordable?'rgba(232,165,76,0.4)':'rgba(255,255,255,0.08)'};
+      opacity:${affordable?'1':'0.5'};transition:opacity .15s;">
+      <div style="color:#f5deb3;font-size:12px;font-weight:700;">${u.name}</div>
+      <div style="color:#a08560;font-size:10px;">${u.desc}</div>
+      <div style="color:#e8a54c;font-size:11px;font-weight:700;margin-top:2px;">${_cookieFmt(u.cost)} 🍪</div>
+    </div>`;
+  }).join('') || '<div style="color:#6a5238;font-size:11px;">All upgrades bought!</div>';
+
+  const bldEl = document.getElementById('cookie-buildings');
+  bldEl.innerHTML = _cookieBuildingDefs.map(b => {
+    const cost = _cookieBuildingCost(b);
+    const owned = _cookieState.owned[b.key];
+    const affordable = _cookieState.cookies >= cost;
+    return `<div onclick="cookieBuyBuilding('${b.key}')" style="display:flex;align-items:center;gap:8px;padding:8px 10px;
+      border-radius:9px;margin-bottom:6px;cursor:pointer;
+      background:${affordable?'rgba(232,165,76,0.15)':'rgba(255,255,255,0.03)'};
+      border:1px solid ${affordable?'rgba(232,165,76,0.4)':'rgba(255,255,255,0.08)'};
+      opacity:${affordable?'1':'0.55'};transition:opacity .15s;">
+      <div style="font-size:20px;">${b.icon}</div>
+      <div style="flex:1;">
+        <div style="color:#f5deb3;font-size:12px;font-weight:700;">${b.name} ${owned>0?'<span style=\"color:#8a6a48;\">×'+owned+'</span>':''}</div>
+        <div style="color:#a08560;font-size:10px;">${b.cps} cookies/sec each</div>
+      </div>
+      <div style="color:#e8a54c;font-size:11px;font-weight:700;white-space:nowrap;">${_cookieFmt(cost)} 🍪</div>
+    </div>`;
+  }).join('');
+}
+
+
+window.addEventListener('load',function(){try{cookieOpen()}catch(e){console.error(e)}});</script></body></html>
