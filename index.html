@@ -494,16 +494,34 @@ function when(t){const d=new Date(t),n=new Date();return d.toDateString()===n.to
 function markSeen(){if(!openId)return;const s=ls('seen_'+me.num)||{};s[openId]=Date.now();ls('seen_'+me.num,s)}
 function titleOf(c){if(isG(c.id))return (groups[c.id]&&groups[c.id].name)||String(c.n||'Group');if(!names[c.id]&&c.n)names[c.id]=String(c.n);return disp(c.id)}
 let inboxT=null;
+const avatarPngCache={};
+function avatarPng(key,label){const k=key+'|'+label;if(avatarPngCache[k])return avatarPngCache[k];
+  try{const S=192,c=document.createElement('canvas');c.width=c.height=S;const x=c.getContext('2d');
+    let h=0;for(const ch of String(key))h=(h*31+ch.charCodeAt(0))>>>0;const p=PAL[h%PAL.length];
+    const g=x.createLinearGradient(0,0,S,S);g.addColorStop(0,p[0]);g.addColorStop(1,p[1]);x.fillStyle=g;x.fillRect(0,0,S,S);
+    x.fillStyle='#fff';x.font='bold 96px system-ui,Arial,sans-serif';x.textAlign='center';x.textBaseline='middle';
+    x.fillText((String(label).replace('#','')[0]||'?').toUpperCase(),S/2,S/2+8);
+    return avatarPngCache[k]=c.toDataURL('image/png')}catch(e){return '/icon-192.png'}}
+let bannerPng=null;
+function getBanner(){if(bannerPng)return bannerPng;try{const W=1024,H=330,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
+  const g=x.createLinearGradient(0,0,W,H);g.addColorStop(0,'#2ee89f');g.addColorStop(1,'#0a8f54');x.fillStyle=g;x.fillRect(0,0,W,H);
+  x.fillStyle='rgba(255,255,255,.08)';for(let yy=30;yy<H;yy+=58)for(let xx=30;xx<W;xx+=58){x.beginPath();x.arc(xx,yy,4,0,7);x.fill()}
+  x.fillStyle='#fff';x.textAlign='left';x.textBaseline='middle';x.font='800 130px system-ui,Arial,sans-serif';x.fillText('Cipher',64,H/2-8);
+  x.globalAlpha=.9;x.font='700 42px system-ui,Arial,sans-serif';x.fillText('\uD83D\uDD12 end\u2011to\u2011end encrypted',68,H/2+92);x.globalAlpha=1;
+  return bannerPng=c.toDataURL('image/png')}catch(e){return null}}
 function notifPreview(m){if(m.k==='t')return m.v.length>140?m.v.slice(0,140)+'\u2026':m.v;if(m.k==='s')return m.img?'Sticker':m.v;if(m.k==='i')return '\uD83D\uDCF7 Photo';if(m.vo)return '\uD83C\uDFA4 Voice message';if(m.k==='f')return '\uD83D\uDCCE '+(m.nm||'File');if(m.k==='c')return '\uD83D\uDCDE Call';return 'New message'}
 async function notify(c){
   if(c.q||isBlocked(c.by)||(!isG(c.id)&&isBlocked(c.id))||!me.settings.notify||!('Notification' in window)||Notification.permission!=='granted')return;
   const g=isG(c.id),title=g?titleOf(c):disp(c.id);
   let body=c.mc?'Missed call':(g?disp(c.by)+' sent a message':'New encrypted message');
+  let mm=null;
   if(!c.mc&&me.settings.preview!==false){
     try{const snap=await db.collection('chats/'+cidOf(c.id)+'/msgs').orderBy('t','desc').limit(1).get();
-      if(snap.docs&&snap.docs.length){const mm=await decryptMsg(snap.docs[0],c.id);if(mm.k!=='x'){body=(g?disp(c.by)+': ':'')+notifPreview(mm)}}}catch(e){}
+      if(snap.docs&&snap.docs.length){const d2=await decryptMsg(snap.docs[0],c.id);if(d2.k!=='x'){mm=d2;body=(g?disp(c.by)+': ':'')+notifPreview(mm)}}}catch(e){}
   }
-  const o={body,icon:'/icon-192.png',badge:'/icon-192.png',tag:c.id,renotify:true,data:{id:c.id}};
+  const sender=g?(mm?mm.f:c.by):c.id;
+  const o={body,icon:avatarPng(sender,disp(sender)),badge:'/icon-192.png',tag:c.id,renotify:true,data:{id:c.id},vibrate:[60,40,60],actions:[{action:'open',title:'Open'},{action:'read',title:'Mark read'}]};
+  if(!c.mc)o.image=(mm&&mm.k==='i'&&mm.v)?mm.v:getBanner();
   const fb=()=>{try{const n=new Notification(title,o);n.onclick=()=>{focus();openChat(c.id)}}catch(e){}};
   if(navigator.serviceWorker&&navigator.serviceWorker.controller)navigator.serviceWorker.ready.then(r=>r.showNotification(title,o)).catch(fb);else fb();
 }
@@ -1582,7 +1600,7 @@ function startAnn(){
 }
 function annNotify(m){const body=m.live?((m.who||'Admin')+' is live \u2014 tap to watch'):((m.who?m.who+': ':'')+(m.text||'New announcement'));
   toast('\uD83D\uDCE3 '+body);
-  if(me.settings.notify&&'Notification' in window&&Notification.permission==='granted'){const o={body,icon:'/icon-192.png',badge:'/icon-192.png',tag:'ann',renotify:true,data:{id:'__ann__'}};
+  if(me.settings.notify&&'Notification' in window&&Notification.permission==='granted'){const o={body,icon:'/icon-192.png',badge:'/icon-192.png',tag:'ann',renotify:true,data:{id:'__ann__'},vibrate:[60,40,60],image:getBanner(),actions:[{action:'open',title:'Open'}]};
     try{navigator.serviceWorker&&navigator.serviceWorker.controller?navigator.serviceWorker.ready.then(r=>r.showNotification('Cipher Announcements',o)):new Notification('Cipher Announcements',o)}catch(e){}}}
 function annBadge(){const newest=annMsgs[annMsgs.length-1];const un=newest&&newest.by!==me.num&&newest.t>(+(ls('ann_seen')||0));$('annBtn').classList.toggle('alerted',!!un)}
 function renderAnnCompose(){const can=canPostAnn();$('annCompose').classList.toggle('hide',!can);$('annRo').classList.toggle('hide',can)}
