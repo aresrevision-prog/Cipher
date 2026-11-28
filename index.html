@@ -160,6 +160,7 @@ label.chk{flex-direction:row;align-items:center;gap:10px;font-size:14px;color:va
 #live{position:fixed;inset:0;z-index:40;background:#000;display:flex;flex-direction:column}#live .livebar{display:flex;align-items:center;gap:10px;padding:13px 16px;background:#0c0f0d;color:#fff;border-bottom:1px solid #1e2a24}#live .livebar b{flex:1;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#live .livebar button{background:#242836;color:#fff;box-shadow:none}#live .livebar #liveStop{background:#ff3b3b}#liveVideo{flex:1;width:100%;object-fit:contain;background:#000}.livedot{width:11px;height:11px;border-radius:50%;background:#ff3b3b;flex:none;box-shadow:0 0 0 4px #ff3b3b33;animation:lpulse 1.2s infinite}@keyframes lpulse{50%{opacity:.35}}#liveBanner{display:flex;align-items:center;gap:10px;padding:10px 14px;background:color-mix(in srgb,#ff3b3b 13%,var(--panel));border-bottom:1px solid var(--line);font-weight:600;font-size:13px;position:relative;z-index:1}#liveBanner button{margin-left:auto;background:#ff3b3b;color:#fff;padding:7px 15px;border-radius:9px;box-shadow:none;font-weight:700}#chanStrip .golive{background:color-mix(in srgb,#ff3b3b 16%,transparent);color:#ff3b3b;font-weight:700}#roBar{padding:12px 14px;margin:0;text-align:center;font-size:13px;font-weight:600;color:var(--mute);background:var(--panel);border-top:1px solid var(--line)}
 #ann{position:fixed;inset:0;z-index:30;background:var(--bg);display:flex;flex-direction:column}#ann .annhead{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line);background:var(--panel)}#ann .annhead b{flex:1;font-weight:800;font-size:17px}#annList{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}.annmsg{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--acc);border-radius:12px;padding:10px 14px;max-width:min(92%,560px);align-self:flex-start}.annmsg.me{align-self:flex-end}.annwho{font-size:11.5px;color:var(--mute);font-weight:700;margin-bottom:3px}.anntext{white-space:pre-wrap;word-break:break-word;font-size:14.5px}.annwatch{background:#ff3b3b;color:#fff;font-weight:700;border-radius:9px;padding:8px 14px;box-shadow:none}#annCompose{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line);background:var(--panel);align-items:center}#annCompose input{flex:1}#annLive{font-size:20px}#annRo{padding:13px;text-align:center;color:var(--mute);font-size:13px;font-weight:600;border-top:1px solid var(--line);background:var(--panel)}#annBtn.alerted{position:relative}#annBtn.alerted:after{content:'';position:absolute;top:4px;right:4px;width:8px;height:8px;border-radius:50%;background:#ff3b3b}
 .tabs button.hasreq{position:relative}.tabs button.hasreq:after{content:'';position:absolute;top:5px;right:10px;width:7px;height:7px;border-radius:50%;background:#ff3b3b}#reqList{padding:2px 8px 6px}.reqh{margin:8px 8px 4px;font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.05em;font-weight:700}.reqacc{background:var(--acc);color:#fff;padding:7px 12px;border-radius:9px;font-size:12.5px;box-shadow:none;flex:none}#reqList .item button{flex:none}#reqList .item .ghost{color:var(--mute)}
+.admstats{display:flex;gap:8px;margin:2px 0 12px}.admstat{flex:1;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 6px;text-align:center}.admstat b{display:block;font-size:21px;font-weight:800;line-height:1}.admstat small{color:var(--mute);font-size:10.5px;font-weight:600}.admtabs{display:flex;gap:4px;padding:4px;background:var(--bg);border-radius:12px;margin-bottom:10px}.admtabs button{flex:1;background:transparent;color:var(--mute);border-radius:9px;padding:9px 4px;font-weight:700;font-size:13px;box-shadow:none}.admtabs button.on{background:var(--solid);color:var(--ink);box-shadow:0 2px 8px -2px #0002}.admtabs button .cnt{display:inline-block;min-width:16px;padding:0 4px;margin-left:4px;border-radius:9px;background:var(--bad);color:#fff;font-size:11px}.admcontent{max-height:52vh;overflow-y:auto;margin:0 -4px;padding:0 4px}
 .m time{display:block;font-size:10.5px;opacity:.6;margin-top:3px;text-align:right}
 .day{align-self:center;font-size:11.5px;font-weight:600;color:var(--mute);background:var(--panel);border:1px solid var(--line);padding:4px 12px;border-radius:99px;margin:10px 0 6px;backdrop-filter:blur(8px)}
 .empty{margin:auto;color:var(--mute);text-align:center;font-size:14px;padding:30px;position:relative}
@@ -760,7 +761,7 @@ async function wipe(num){
 $('admBtn').onclick=async()=>{
   if(!me||me.num!==ADMIN)return;
   const err=errBox(),repBox=el('div'),box=el('div'),q=el('input',{placeholder:'Search name or number'});
-  let users=[],bans=new Map();
+  let users=[],bans=new Map(),repCount=0;
   const act=async(btn,fn)=>{btn.disabled=true;err.textContent='';try{await fn();await load()}catch(e){err.textContent=e.message||e.code||''}btn.disabled=false};
   const susp=(num,days)=>adminBan(num,true,days);
   const status=n=>{const u=bans.get(n);if(u===undefined)return null;if(u&&u<Date.now())return null;return u?'SUSPENDED until '+new Date(u).toLocaleDateString([],{day:'numeric',month:'short'})+' '+new Date(u).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'BANNED'};
@@ -770,7 +771,7 @@ $('admBtn').onclick=async()=>{
       const [u,b]=await Promise.all([db.collection('numbers').limit(1000).get(),db.collection('bans').limit(1000).get()]);
       users=u.docs.map(d=>({num:d.id,name:String(d.data().name||'')}));bans=new Map(b.docs.map(d=>[d.id,+(d.data().until||0)]));
       for(const n of bans.keys())if(!users.some(x=>x.num===n))users.push({num:n,name:'(deleted)'});
-      users.sort((a,b)=>a.num.localeCompare(b.num));draw();
+      users.sort((a,b)=>a.num.localeCompare(b.num));draw();updateStats();
     }catch(e){box.textContent='';err.textContent=e.message||e.code}
     await loadReports();
   };
@@ -782,7 +783,7 @@ $('admBtn').onclick=async()=>{
       repBox.append(el('p',{},'Unlock to see reported messages, suspend people and get report notifications on this device.'),el('div',{className:'row'},pw,go));return;
     }
     let rows=[];try{rows=await admRpc('admin_reports')}catch(e){err.textContent=e.message;return loadReports()}
-    if(rows.length)ls('adm_read',Math.max(...rows.map(r=>+r.id)));$('admBtn').classList.remove('alert');
+    if(rows.length)ls('adm_read',Math.max(...rows.map(r=>+r.id)));$('admBtn').classList.remove('alert');repCount=rows.length;updateStats();
     if(!rows.length){repBox.append(el('p',{},'No reports 🎉'))}
     for(const r of rows.slice(0,50)){
       const nm=(users.find(x=>x.num===r.num)||{}).name||'',st=status(r.num);
@@ -824,7 +825,20 @@ $('admBtn').onclick=async()=>{
     annBox.append(el('div',{className:'row'},ai,ab));
   }
   drawAnn();
-  modal('Admin',el('h2',{},'Reports'),repBox,err,el('h2',{},'Accounts'),el('p',{},'Ban blocks a number permanently. Suspensions (1–3 days) lift automatically. Delete removes the account and frees the number.'),q,box,annBox);
+  const stats=el('div',{className:'admstats'}),tabsEl=el('div',{className:'admtabs'}),content=el('div',{className:'admcontent'});
+  const panes={reports:el('div'),accounts:el('div'),announcers:annBox};
+  panes.reports.append(repBox);
+  panes.accounts.append(el('div',{style:'margin-bottom:8px'},q),el('p',{style:'margin:0 0 8px'},'Ban = permanent. Suspend = 1–3 days, auto-lifts. Delete frees the number.'),box);
+  const tabBtns={};
+  function showTab(name){for(const k in panes)panes[k].style.display=k===name?'':'none';for(const k in tabBtns)tabBtns[k].classList.toggle('on',k===name)}
+  for(const [k,label] of [['reports','Reports'],['accounts','Accounts'],['announcers','Posters']]){const b=el('button',{},label);b.onclick=()=>showTab(k);tabBtns[k]=b;tabsEl.append(b)}
+  function updateStats(){stats.textContent='';const now=Date.now();const banned=[...bans.values()].filter(v=>v===0||v>now).length;
+    const mk=(n,l)=>el('div',{className:'admstat'},el('b',{},String(n)),el('small',{},l));
+    stats.append(mk(users.length,'accounts'),mk(banned,'banned'),mk(repCount,'reports'));
+    const rc=tabBtns.reports;if(rc){rc.textContent='Reports';if(repCount)rc.append(el('span',{className:'cnt'},String(repCount)))}}
+  content.append(panes.reports,panes.accounts,panes.announcers);
+  modal('\uD83D\uDEE1\uFE0F Admin',stats,tabsEl,content,err);
+  showTab('reports');updateStats();
   load();
 };
 
