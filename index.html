@@ -159,6 +159,7 @@ label.chk{flex-direction:row;align-items:center;gap:10px;font-size:14px;color:va
 #chanStrip{display:flex;gap:6px;overflow-x:auto;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--panel);align-items:center;position:relative;z-index:1}#chanStrip button{flex:none;background:var(--bg);color:var(--mute);border-radius:9px;padding:6px 12px;font-weight:600;font-size:13px;box-shadow:none;white-space:nowrap}#chanStrip button.on{background:var(--acc);color:#fff}#chanStrip button.vc{color:var(--ink)}#chanStrip .csep{width:1px;height:20px;background:var(--line);flex:none}.rolechip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--bg);margin:2px 3px 0 0}.rdot{width:10px;height:10px;border-radius:50%;flex:none;display:inline-block}.mem2{display:flex;flex-direction:column;gap:3px;padding:9px 0;border-bottom:1px solid var(--line)}.mem2 .top{display:flex;align-items:center;gap:10px}.mem2 .top span{flex:1;font-weight:600}.mem2 .roles{display:flex;flex-wrap:wrap;gap:3px;padding-left:40px}.chrow{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)}.chrow span{flex:1}.chrow .tag{font-size:11px;color:var(--mute);font-weight:700}
 #live{position:fixed;inset:0;z-index:40;background:#000;display:flex;flex-direction:column}#live .livebar{display:flex;align-items:center;gap:10px;padding:13px 16px;background:#0c0f0d;color:#fff;border-bottom:1px solid #1e2a24}#live .livebar b{flex:1;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#live .livebar button{background:#242836;color:#fff;box-shadow:none}#live .livebar #liveStop{background:#ff3b3b}#liveVideo{flex:1;width:100%;object-fit:contain;background:#000}.livedot{width:11px;height:11px;border-radius:50%;background:#ff3b3b;flex:none;box-shadow:0 0 0 4px #ff3b3b33;animation:lpulse 1.2s infinite}@keyframes lpulse{50%{opacity:.35}}#liveBanner{display:flex;align-items:center;gap:10px;padding:10px 14px;background:color-mix(in srgb,#ff3b3b 13%,var(--panel));border-bottom:1px solid var(--line);font-weight:600;font-size:13px;position:relative;z-index:1}#liveBanner button{margin-left:auto;background:#ff3b3b;color:#fff;padding:7px 15px;border-radius:9px;box-shadow:none;font-weight:700}#chanStrip .golive{background:color-mix(in srgb,#ff3b3b 16%,transparent);color:#ff3b3b;font-weight:700}#roBar{padding:12px 14px;margin:0;text-align:center;font-size:13px;font-weight:600;color:var(--mute);background:var(--panel);border-top:1px solid var(--line)}
 #ann{position:fixed;inset:0;z-index:30;background:var(--bg);display:flex;flex-direction:column}#ann .annhead{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line);background:var(--panel)}#ann .annhead b{flex:1;font-weight:800;font-size:17px}#annList{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}.annmsg{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--acc);border-radius:12px;padding:10px 14px;max-width:min(92%,560px);align-self:flex-start}.annmsg.me{align-self:flex-end}.annwho{font-size:11.5px;color:var(--mute);font-weight:700;margin-bottom:3px}.anntext{white-space:pre-wrap;word-break:break-word;font-size:14.5px}.annwatch{background:#ff3b3b;color:#fff;font-weight:700;border-radius:9px;padding:8px 14px;box-shadow:none}#annCompose{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line);background:var(--panel);align-items:center}#annCompose input{flex:1}#annLive{font-size:20px}#annRo{padding:13px;text-align:center;color:var(--mute);font-size:13px;font-weight:600;border-top:1px solid var(--line);background:var(--panel)}#annBtn.alerted{position:relative}#annBtn.alerted:after{content:'';position:absolute;top:4px;right:4px;width:8px;height:8px;border-radius:50%;background:#ff3b3b}
+.tabs button.hasreq{position:relative}.tabs button.hasreq:after{content:'';position:absolute;top:5px;right:10px;width:7px;height:7px;border-radius:50%;background:#ff3b3b}#reqList{padding:2px 8px 6px}.reqh{margin:8px 8px 4px;font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.05em;font-weight:700}.reqacc{background:var(--acc);color:#fff;padding:7px 12px;border-radius:9px;font-size:12.5px;box-shadow:none;flex:none}#reqList .item button{flex:none}#reqList .item .ghost{color:var(--mute)}
 .m time{display:block;font-size:10.5px;opacity:.6;margin-top:3px;text-align:right}
 .day{align-self:center;font-size:11.5px;font-weight:600;color:var(--mute);background:var(--panel);border:1px solid var(--line);padding:4px 12px;border-radius:99px;margin:10px 0 6px;backdrop-filter:blur(8px)}
 .empty{margin:auto;color:var(--mute);text-align:center;font-size:14px;padding:30px;position:relative}
@@ -212,8 +213,9 @@ label.chk{flex-direction:row;align-items:center;gap:10px;font-size:14px;color:va
       <div class="list" id="list"></div>
     </div>
     <div id="tabContacts" class="hide" style="flex:1;display:flex;flex-direction:column;min-height:0">
-      <div class="tool"><input id="cNum" placeholder="Number" inputmode="numeric" maxlength="12" style="width:40%"><input id="cNick" placeholder="Name" maxlength="30"><button id="cAdd">Add</button></div>
+      <div class="tool"><input id="cNum" placeholder="Number" inputmode="numeric" maxlength="12" style="width:40%"><input id="cNick" placeholder="Name" maxlength="30"><button id="cAdd">Request</button></div>
       <div class="err" id="cErr" style="padding:0 12px"></div>
+      <div id="reqList" class="hide"></div>
       <div class="list" id="clist"></div>
     </div>
   </aside>
@@ -457,7 +459,7 @@ function logout(){
   if(liveB)stopLive();if(liveV)leaveLive();if(unsubLiveBan){unsubLiveBan();unsubLiveBan=null}
   $('back').click();priv=privJwk=null;ls('cipher_session',null);admStop();ls('cipher_admin',null);
   for(const o of [shared,plain,groups,pubs,names])for(const k in o)delete o[k];
-  if(unsubInbox)unsubInbox();if(unsubBan){unsubBan();unsubBan=null}if(unsubGames){unsubGames();unsubGames=null}if(unsubAnn){unsubAnn();unsubAnn=null}if(unsubAnnMeta){unsubAnnMeta();unsubAnnMeta=null}annMsgs=[];annPosters=[];$('ann').classList.add('hide');sharedGames=[];inbox=[];me=null;setBadge(0);delete document.documentElement.dataset.theme;mode(false);show('auth');
+  if(unsubInbox)unsubInbox();if(unsubBan){unsubBan();unsubBan=null}if(unsubGames){unsubGames();unsubGames=null}if(unsubAnn){unsubAnn();unsubAnn=null}if(unsubAnnMeta){unsubAnnMeta();unsubAnnMeta=null}if(unsubReq){unsubReq();unsubReq=null}if(unsubFriends){unsubFriends();unsubFriends=null}myFriends=new Set();reqIn=[];annMsgs=[];annPosters=[];$('ann').classList.add('hide');sharedGames=[];inbox=[];me=null;setBadge(0);delete document.documentElement.dataset.theme;mode(false);show('auth');
 }
 
 const ADMIN='0001';let unsubBan=null;
@@ -467,7 +469,7 @@ function start(){
   if(unsubBan)unsubBan();
   if(unsubRing)unsubRing();seenRing.clear();unsubRing=db.collection('ring/'+me.num+'/in').orderBy('t','desc').limit(5).onSnapshot(onRing,()=>{});
   unsubBan=db.doc('bans/'+me.num).onSnapshot(b=>{const bm=banMsg(b);if(bm){logout();$('aErr').textContent=bm}},()=>{});
-  admStart();startGames();startAnn();
+  admStart();startGames();startAnn();startFriends();
   $('myAv').textContent=me.name[0].toUpperCase();$('myAv').style.cssText=avBg(me.num);$('myName').textContent=tag(me.num,me.name);$('myNum').textContent='#'+me.num;
   if(unsubInbox)unsubInbox();
   inboxT=null;
@@ -524,6 +526,42 @@ function renderList(){
   if(!shown)L.append(emptyEl(listFilter==='groups'?'group':'chat',listFilter==='groups'?'No groups yet — tap the group button to make one':'No DMs yet — text a number above'));
   setBadge(unread);
 }
+let myFriends=new Set(),reqIn=[],unsubReq=null,unsubFriends=null,reqFirst=true,friendsFirst=true;
+const isFriend=n=>myFriends.has(n);
+const hasChat=n=>inbox.some(c=>c.id===n);
+const pendingNick=n=>ls('pnick_'+n);
+async function sendRequest(num,nick){
+  if(num===me.num)throw new Error("That's your own number");
+  await getPub(num);
+  if(isFriend(num)||hasChat(num)){if(nick)await addContact(num,nick);openChat(num);return 'open'}
+  if(nick)ls('pnick_'+num,nick);
+  await db.doc('requests/'+num+'/in/'+me.num).set({from:me.num,who:disp(me.num),t:Date.now()});return 'sent'}
+async function acceptReq(r){try{const t=Date.now();
+    await db.doc('friends/'+me.num+'/list/'+r.from).set({who:r.who||r.from,t});
+    await db.doc('friends/'+r.from+'/list/'+me.num).set({who:disp(me.num),t});
+    await addContact(r.from,r.who);
+    await db.doc('requests/'+me.num+'/in/'+r.from).delete();
+    toast('\uD83E\uDD1D You and '+disp(r.from)+' are now connected')}catch(e){toast('Could not accept')}}
+async function declineReq(r){try{await db.doc('requests/'+me.num+'/in/'+r.from).delete()}catch(e){}}
+function reqBadge(){const b=document.querySelector('#side .tabs button[data-tab="contacts"]');if(b)b.classList.toggle('hasreq',reqIn.length>0)}
+function renderRequests(){const R=$('reqList');if(!R)return;R.textContent='';if(!reqIn.length){R.classList.add('hide');return}R.classList.remove('hide');
+  R.append(el('div',{className:'reqh'},'Friend requests'));
+  for(const r of reqIn){R.append(el('div',{className:'item'},avatar(r.from,r.who||('#'+r.from)),
+    el('div',{className:'t'},el('b',{},r.who||('#'+r.from)),el('small',{},'#'+r.from+' wants to connect')),
+    el('button',{className:'reqacc',textContent:'Accept',on:{click:()=>acceptReq(r)}}),
+    el('button',{className:'ghost',textContent:'Decline',on:{click:()=>declineReq(r)}})))}}
+function startFriends(){
+  if(unsubReq)unsubReq();reqFirst=true;
+  unsubReq=db.collection('requests/'+me.num+'/in').orderBy('t','desc').limit(50).onSnapshot(sn=>{reqIn=sn.docs.map(d=>({from:d.id,...d.data()}));
+    if(!reqFirst){const last=+(ls('req_seen')||0);for(const r of reqIn.filter(r=>r.t>last&&r.from!==me.num).slice(0,3))toast('\uD83D\uDC4B Friend request from '+(r.who||('#'+r.from)))}
+    if(reqIn.length)ls('req_seen',Math.max(...reqIn.map(r=>r.t)));reqFirst=false;reqBadge();renderRequests()},()=>{});
+  if(unsubFriends)unsubFriends();friendsFirst=true;
+  unsubFriends=db.collection('friends/'+me.num+'/list').limit(500).onSnapshot(async sn=>{myFriends=new Set(sn.docs.map(d=>d.id));
+    let changed=false;const c={...me.contacts};const added=[];
+    for(const d of sn.docs){const n=d.id;if(!c[n]){c[n]=pendingNick(n)||String(d.data().who||n);ls('pnick_'+n,null);changed=true;added.push(n)}}
+    if(changed)await saveProfile({contacts:c});
+    if(!friendsFirst)for(const n of added)toast('\uD83E\uDD1D Connected with '+disp(n));friendsFirst=false;renderContacts()},()=>{});
+}
 function renderContacts(){
   const L=$('clist');L.textContent='';
   const nums=Object.keys(me.contacts).sort((a,b)=>me.contacts[a].localeCompare(me.contacts[b]));
@@ -544,12 +582,12 @@ async function removeContact(num){
 $('cAdd').onclick=async()=>{
   const n=$('cNum').value.trim(),nick=$('cNick').value.trim();$('cErr').textContent='';
   if(!NUM.test(n))return $('cErr').textContent='Enter a 4–12 digit number';
-  try{await addContact(n,nick);$('cNum').value=$('cNick').value=''}catch(e){$('cErr').textContent=e.message||e.code}
+  try{const r=await sendRequest(n,nick);$('cNum').value=$('cNick').value='';toast(r==='sent'?'\uD83D\uDC4B Request sent to #'+n:'Opening chat')}catch(e){$('cErr').textContent=e.message||'No one has that number'}
 };
 $('newGo').onclick=async()=>{
   const n=$('newNum').value.trim();$('newErr').textContent='';
   if(!NUM.test(n))return $('newErr').textContent='Enter a 4–12 digit number';
-  try{await getPub(n);$('newNum').value='';openChat(n)}catch(e){$('newErr').textContent='No one has that number'}
+  try{const r=await sendRequest(n);$('newNum').value='';if(r==='sent')toast('\uD83D\uDC4B Request sent \u2014 you can chat once #'+n+' accepts')}catch(e){$('newErr').textContent='No one has that number'}
 };
 $('newNum').onkeydown=e=>{if(e.key==='Enter')$('newGo').click()};
 
